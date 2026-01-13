@@ -47,29 +47,65 @@ export class LibraryService {
     return stmt.get(id) as Book | undefined;
   }
 
-  getAllBooks(filters?: { status?: string; genre?: string }): Book[] {
+  getAllBooks(options?: {
+    status?: string;
+    genre?: string;
+    tag?: string;
+    sortBy?: 'title' | 'author' | 'dateAdded' | 'publishedYear' | 'rating';
+    sortOrder?: 'asc' | 'desc';
+  }): Book[] {
     let query = 'SELECT * FROM books';
     const params: any[] = [];
+    const conditions: string[] = [];
 
-    if (filters) {
-      const conditions: string[] = [];
-      if (filters.status) {
-        conditions.push('status = ?');
-        params.push(filters.status);
-      }
-      if (filters.genre) {
-        conditions.push('genre = ?');
-        params.push(filters.genre);
-      }
-      if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
-      }
+    if (options?.status) {
+      conditions.push('status = ?');
+      params.push(options.status);
+    }
+    if (options?.genre) {
+      conditions.push('genre = ?');
+      params.push(options.genre);
+    }
+    if (options?.tag) {
+      conditions.push('tags LIKE ?');
+      params.push(`%${options.tag}%`);
     }
 
-    query += ' ORDER BY dateAdded DESC';
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    const sortBy = options?.sortBy || 'dateAdded';
+    const sortOrder = options?.sortOrder || 'desc';
+    const validSortColumns = ['title', 'author', 'dateAdded', 'publishedYear', 'rating'];
+    const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'dateAdded';
+    const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    query += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
 
     const stmt = this.db.prepare(query);
     return stmt.all(...params) as Book[];
+  }
+
+  getUniqueGenres(): string[] {
+    const stmt = this.db.prepare('SELECT DISTINCT genre FROM books WHERE genre IS NOT NULL ORDER BY genre');
+    const results = stmt.all() as { genre: string }[];
+    return results.map(r => r.genre);
+  }
+
+  getUniqueTags(): string[] {
+    const stmt = this.db.prepare('SELECT tags FROM books WHERE tags IS NOT NULL');
+    const results = stmt.all() as { tags: string }[];
+    const allTags = new Set<string>();
+    results.forEach(r => {
+      if (r.tags) {
+        r.tags.split(',').forEach(tag => {
+          const trimmed = tag.trim().toLowerCase();
+          if (trimmed) allTags.add(trimmed);
+        });
+      }
+    });
+    return Array.from(allTags).sort();
   }
 
   updateBook(id: number, updates: Partial<Book>): boolean {

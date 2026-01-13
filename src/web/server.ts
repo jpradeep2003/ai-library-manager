@@ -31,12 +31,33 @@ function getOrCreateAgent(sessionId: string): AIAgentService {
 
 app.get('/api/books', (req, res) => {
   try {
-    const { status, genre } = req.query;
+    const { status, genre, tag, sortBy, sortOrder } = req.query;
     const books = libraryService.getAllBooks({
       status: status as string,
       genre: genre as string,
+      tag: tag as string,
+      sortBy: sortBy as 'title' | 'author' | 'dateAdded' | 'publishedYear' | 'rating',
+      sortOrder: sortOrder as 'asc' | 'desc',
     });
     res.json({ books, count: books.length });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/genres', (req, res) => {
+  try {
+    const genres = libraryService.getUniqueGenres();
+    res.json({ genres });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/tags', (req, res) => {
+  try {
+    const tags = libraryService.getUniqueTags();
+    res.json({ tags });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

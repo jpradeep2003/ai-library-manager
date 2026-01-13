@@ -11,6 +11,7 @@ export interface BookMetadata {
   description?: string;
   coverUrl?: string;
   summary?: string;
+  tags?: string;
 }
 
 export class BookMetadataService {
@@ -58,15 +59,39 @@ export class BookMetadataService {
     }
   }
 
-  async generateSummary(bookTitle: string, author: string, description?: string): Promise<string> {
+  async generateSummaryAndTags(bookTitle: string, author: string, description?: string, genre?: string): Promise<{ summary: string; tags: string }> {
     try {
       const prompt = description
-        ? `Please provide a concise 5-7 sentence summary of the book "${bookTitle}" by ${author}. Here's the book description: ${description}\n\nProvide only the summary, no additional commentary.`
-        : `Please provide a concise 5-7 sentence summary of the book "${bookTitle}" by ${author}. Provide only the summary, no additional commentary.`;
+        ? `For the book "${bookTitle}" by ${author}${genre ? ` (Genre: ${genre})` : ''}:
+
+Book description: ${description}
+
+Please provide:
+1. A concise 5-7 sentence summary of the book
+2. Exactly 5 relevant tags that describe this book's themes, genre, mood, or topics (single words or short phrases, lowercase)
+
+Format your response exactly like this:
+SUMMARY:
+[Your summary here]
+
+TAGS:
+tag1, tag2, tag3, tag4, tag5`
+        : `For the book "${bookTitle}" by ${author}${genre ? ` (Genre: ${genre})` : ''}:
+
+Please provide:
+1. A concise 5-7 sentence summary of the book
+2. Exactly 5 relevant tags that describe this book's themes, genre, mood, or topics (single words or short phrases, lowercase)
+
+Format your response exactly like this:
+SUMMARY:
+[Your summary here]
+
+TAGS:
+tag1, tag2, tag3, tag4, tag5`;
 
       const response = await this.client.messages.create({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
+        max_tokens: 600,
         messages: [
           {
             role: 'user',
@@ -77,13 +102,21 @@ export class BookMetadataService {
 
       const textContent = response.content.find((block) => block.type === 'text');
       if (textContent && textContent.type === 'text') {
-        return textContent.text.trim();
+        const text = textContent.text.trim();
+
+        const summaryMatch = text.match(/SUMMARY:\s*([\s\S]*?)(?=TAGS:|$)/i);
+        const tagsMatch = text.match(/TAGS:\s*([\s\S]*?)$/i);
+
+        const summary = summaryMatch ? summaryMatch[1].trim() : text;
+        const tags = tagsMatch ? tagsMatch[1].trim() : '';
+
+        return { summary, tags };
       }
 
-      return '';
+      return { summary: '', tags: '' };
     } catch (error) {
-      console.error('Error generating summary:', error);
-      return '';
+      console.error('Error generating summary and tags:', error);
+      return { summary: '', tags: '' };
     }
   }
 
@@ -101,15 +134,17 @@ export class BookMetadataService {
     };
 
     const finalDescription = mergedData.description || existingData?.description;
-    const summary = await this.generateSummary(
+    const { summary, tags } = await this.generateSummaryAndTags(
       mergedData.title || title,
       mergedData.author || author,
-      finalDescription
+      finalDescription,
+      mergedData.genre
     );
 
     return {
       ...mergedData,
       summary: summary || undefined,
+      tags: existingData?.tags || tags || undefined,
     };
   }
 }
