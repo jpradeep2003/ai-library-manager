@@ -50,6 +50,11 @@ cp .env.example .env
 ANTHROPIC_API_KEY=your_api_key_here
 ```
 
+5. If upgrading from a previous version, run the database migration:
+```bash
+npm run migrate
+```
+
 ## Usage
 
 ### CLI Interface
