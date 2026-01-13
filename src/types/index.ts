@@ -10,6 +10,7 @@ export interface Book {
   language?: string;
   description?: string;
   coverUrl?: string;
+  summary?: string;
   status: 'want-to-read' | 'reading' | 'completed' | 'on-hold';
   rating?: number;
   dateAdded: string;

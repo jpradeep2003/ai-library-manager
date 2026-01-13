@@ -29,6 +29,7 @@ export class DatabaseManager {
         language TEXT DEFAULT 'English',
         description TEXT,
         coverUrl TEXT,
+        summary TEXT,
         status TEXT DEFAULT 'want-to-read' CHECK(status IN ('want-to-read', 'reading', 'completed', 'on-hold')),
         rating INTEGER CHECK(rating >= 1 AND rating <= 5),
         dateAdded TEXT NOT NULL,

@@ -13,9 +13,9 @@ export class LibraryService {
     const stmt = this.db.prepare(`
       INSERT INTO books (
         title, author, isbn, publisher, publishedYear, genre, pages,
-        language, description, coverUrl, status, rating, dateAdded,
+        language, description, coverUrl, summary, status, rating, dateAdded,
         dateStarted, dateCompleted, currentPage, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -29,6 +29,7 @@ export class LibraryService {
       book.language || 'English',
       book.description || null,
       book.coverUrl || null,
+      book.summary || null,
       book.status,
       book.rating || null,
       book.dateAdded,

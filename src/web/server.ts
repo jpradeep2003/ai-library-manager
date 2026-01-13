@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import { DatabaseManager } from '../database/schema.js';
 import { LibraryService } from '../services/library.service.js';
 import { AIAgentService } from '../services/ai-agent.service.js';
+import { BookMetadataService } from '../services/book-metadata.service.js';
 import { Book, Note } from '../types/index.js';
 
 config();
@@ -18,6 +19,7 @@ app.use(express.static('public'));
 
 const dbManager = new DatabaseManager();
 const libraryService = new LibraryService(dbManager);
+const metadataService = new BookMetadataService();
 const aiAgents = new Map<string, AIAgentService>();
 
 function getOrCreateAgent(sessionId: string): AIAgentService {
@@ -53,13 +55,27 @@ app.get('/api/books/:id', (req, res) => {
   }
 });
 
-app.post('/api/books', (req, res) => {
+app.post('/api/books', async (req, res) => {
   try {
-    const book: Omit<Book, 'id'> = {
+    let bookData: Omit<Book, 'id'> = {
       ...req.body,
       dateAdded: new Date().toISOString(),
     };
-    const id = libraryService.addBook(book);
+
+    if (req.body.fetchMetadata !== false && bookData.title && bookData.author) {
+      try {
+        const metadata = await metadataService.enrichBookData(
+          bookData.title,
+          bookData.author,
+          bookData.isbn
+        );
+        bookData = { ...bookData, ...metadata };
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+      }
+    }
+
+    const id = libraryService.addBook(bookData);
     res.status(201).json({ id, message: 'Book added successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

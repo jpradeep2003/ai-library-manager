@@ -7,6 +7,7 @@ import inquirer from 'inquirer';
 import { DatabaseManager } from './database/schema.js';
 import { LibraryService } from './services/library.service.js';
 import { AIAgentService } from './services/ai-agent.service.js';
+import { BookMetadataService } from './services/book-metadata.service.js';
 import { Book, Note } from './types/index.js';
 
 config();
@@ -15,6 +16,7 @@ const program = new Command();
 const dbManager = new DatabaseManager();
 const libraryService = new LibraryService(dbManager);
 const aiAgent = new AIAgentService(libraryService);
+const metadataService = new BookMetadataService();
 
 program
   .name('library')
@@ -24,16 +26,12 @@ program
 program
   .command('add')
   .description('Add a new book to the library')
-  .action(async () => {
+  .option('--no-fetch', 'Skip fetching metadata from online sources')
+  .action(async (options) => {
     const answers = await inquirer.prompt([
       { type: 'input', name: 'title', message: 'Book title:', validate: (input) => input.length > 0 },
       { type: 'input', name: 'author', message: 'Author:', validate: (input) => input.length > 0 },
       { type: 'input', name: 'isbn', message: 'ISBN (optional):' },
-      { type: 'input', name: 'publisher', message: 'Publisher (optional):' },
-      { type: 'input', name: 'publishedYear', message: 'Published year (optional):' },
-      { type: 'input', name: 'genre', message: 'Genre (optional):' },
-      { type: 'input', name: 'pages', message: 'Number of pages (optional):' },
-      { type: 'input', name: 'description', message: 'Description (optional):' },
       {
         type: 'list',
         name: 'status',
@@ -44,22 +42,54 @@ program
       { type: 'input', name: 'tags', message: 'Tags (comma-separated, optional):' },
     ]);
 
-    const book: Omit<Book, 'id'> = {
+    let bookData: Omit<Book, 'id'> = {
       title: answers.title,
       author: answers.author,
       isbn: answers.isbn || undefined,
-      publisher: answers.publisher || undefined,
-      publishedYear: answers.publishedYear ? parseInt(answers.publishedYear) : undefined,
-      genre: answers.genre || undefined,
-      pages: answers.pages ? parseInt(answers.pages) : undefined,
-      description: answers.description || undefined,
       status: answers.status,
       dateAdded: new Date().toISOString(),
       tags: answers.tags || undefined,
     };
 
-    const id = libraryService.addBook(book);
-    console.log(chalk.green(`✓ Book added successfully with ID: ${id}`));
+    if (options.fetch !== false) {
+      console.log(chalk.gray('\n🔍 Fetching book metadata and generating summary...'));
+      try {
+        const metadata = await metadataService.enrichBookData(
+          answers.title,
+          answers.author,
+          answers.isbn
+        );
+
+        bookData = {
+          ...bookData,
+          ...metadata,
+        };
+
+        if (metadata.coverUrl) {
+          console.log(chalk.green('✓ Cover image found'));
+        }
+        if (metadata.publisher) {
+          console.log(chalk.green(`✓ Publisher: ${metadata.publisher}`));
+        }
+        if (metadata.publishedYear) {
+          console.log(chalk.green(`✓ Published: ${metadata.publishedYear}`));
+        }
+        if (metadata.pages) {
+          console.log(chalk.green(`✓ Pages: ${metadata.pages}`));
+        }
+        if (metadata.genre) {
+          console.log(chalk.green(`✓ Genre: ${metadata.genre}`));
+        }
+        if (metadata.summary) {
+          console.log(chalk.green('✓ AI summary generated'));
+        }
+      } catch (error: any) {
+        console.log(chalk.yellow(`⚠ Could not fetch complete metadata: ${error.message}`));
+      }
+    }
+
+    const id = libraryService.addBook(bookData);
+    console.log(chalk.green(`\n✓ Book added successfully with ID: ${id}`));
   });
 
 program
@@ -121,16 +151,27 @@ program
     }
 
     console.log(chalk.bold.cyan(`\n${book.title}\n`));
-    console.log(`Author: ${book.author}`);
-    console.log(`Status: ${getStatusColor(book.status)}`);
-    if (book.isbn) console.log(`ISBN: ${book.isbn}`);
-    if (book.publisher) console.log(`Publisher: ${book.publisher}`);
-    if (book.publishedYear) console.log(`Published: ${book.publishedYear}`);
-    if (book.genre) console.log(`Genre: ${book.genre}`);
-    if (book.pages) console.log(`Pages: ${book.pages}`);
-    if (book.rating) console.log(`Rating: ${'⭐'.repeat(book.rating)}`);
-    if (book.description) console.log(`\nDescription:\n${book.description}`);
-    if (book.tags) console.log(`\nTags: ${book.tags}`);
+    console.log(`${chalk.bold('Author:')} ${book.author}`);
+    if (book.publishedYear) console.log(`${chalk.bold('Published:')} ${book.publishedYear}`);
+    console.log(`${chalk.bold('Status:')} ${getStatusColor(book.status)}`);
+    if (book.isbn) console.log(`${chalk.bold('ISBN:')} ${book.isbn}`);
+    if (book.publisher) console.log(`${chalk.bold('Publisher:')} ${book.publisher}`);
+    if (book.genre) console.log(`${chalk.bold('Genre:')} ${book.genre}`);
+    if (book.pages) console.log(`${chalk.bold('Pages:')} ${book.pages}`);
+    if (book.rating) console.log(`${chalk.bold('Rating:')} ${'⭐'.repeat(book.rating)}`);
+    if (book.coverUrl) console.log(`${chalk.bold('Cover:')} ${book.coverUrl}`);
+
+    if (book.summary) {
+      console.log(chalk.bold('\n📝 Summary:'));
+      console.log(book.summary);
+    }
+
+    if (book.description) {
+      console.log(chalk.bold('\n📖 Description:'));
+      console.log(book.description);
+    }
+
+    if (book.tags) console.log(`\n${chalk.bold('Tags:')} ${book.tags}`);
 
     const notes = libraryService.getNotesByBookId(book.id!);
     if (notes.length > 0) {
