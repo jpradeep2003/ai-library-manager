@@ -144,8 +144,8 @@ export class LibraryService {
     return result.changes > 0;
   }
 
-  getStatistics() {
-    const stats = this.db.prepare(`
+  getStatistics(): any {
+    const stats: any = this.db.prepare(`
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,

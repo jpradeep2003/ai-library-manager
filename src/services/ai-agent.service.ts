@@ -228,7 +228,7 @@ Guidelines:
   }
 
   private async getLibraryContext(): Promise<string> {
-    const stats = this.libraryService.getStatistics();
+    const stats: any = this.libraryService.getStatistics();
     const recentBooks = this.libraryService.getRecentBooks(5);
 
     return `

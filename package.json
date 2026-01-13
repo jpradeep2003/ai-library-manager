@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/cli.js",
     "web": "tsx src/web/server.ts",
+    "migrate": "tsx src/migrate.ts",
     "test": "vitest"
   },
   "keywords": ["library", "ai", "claude", "books", "management"],

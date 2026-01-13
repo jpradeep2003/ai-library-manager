@@ -321,7 +321,7 @@ program
   .command('stats')
   .description('Show library statistics')
   .action(() => {
-    const stats = libraryService.getStatistics();
+    const stats: any = libraryService.getStatistics();
 
     console.log(chalk.bold('\n📚 Library Statistics\n'));
     console.log(`Total books: ${chalk.cyan(stats.total)}`);

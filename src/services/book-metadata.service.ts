@@ -28,7 +28,7 @@ export class BookMetadataService {
       const googleBooksUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}`;
 
       const response = await fetch(googleBooksUrl);
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (!data.items || data.items.length === 0) {
         console.log('No metadata found from Google Books API');
