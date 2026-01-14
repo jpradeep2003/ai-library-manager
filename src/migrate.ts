@@ -22,6 +22,42 @@ try {
     console.log('✓ Successfully added summary column');
   }
 
+  // Check if saved_qa table exists
+  const tables: any[] = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='saved_qa'").all();
+  const hasSavedQATable = tables.length > 0;
+
+  if (hasSavedQATable) {
+    console.log('✓ Database already has saved_qa table');
+
+    // Check if hidden column exists
+    const qaTableInfo: any[] = db.prepare("PRAGMA table_info(saved_qa)").all();
+    const hasHiddenColumn = qaTableInfo.some((col: any) => col.name === 'hidden');
+
+    if (hasHiddenColumn) {
+      console.log('✓ saved_qa table already has hidden column');
+    } else {
+      console.log('Adding hidden column to saved_qa table...');
+      db.exec('ALTER TABLE saved_qa ADD COLUMN hidden INTEGER DEFAULT 0');
+      console.log('✓ Successfully added hidden column');
+    }
+  } else {
+    console.log('Creating saved_qa table...');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS saved_qa (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bookId INTEGER NOT NULL,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        suggestions TEXT,
+        hidden INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_saved_qa_bookId ON saved_qa(bookId);
+    `);
+    console.log('✓ Successfully created saved_qa table');
+  }
+
   console.log('\n✓ Migration completed successfully!');
 } catch (error) {
   console.error('Migration failed:', error);

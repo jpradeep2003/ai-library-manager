@@ -5,7 +5,7 @@ import { DatabaseManager } from '../database/schema.js';
 import { LibraryService } from '../services/library.service.js';
 import { AIAgentService } from '../services/ai-agent.service.js';
 import { BookMetadataService } from '../services/book-metadata.service.js';
-import { Book, Note } from '../types/index.js';
+import { Book, Note, SavedQA } from '../types/index.js';
 
 config();
 
@@ -198,14 +198,86 @@ app.get('/api/statistics', (req, res) => {
 
 app.post('/api/ai/query', async (req, res) => {
   try {
-    const { message, sessionId = 'default' } = req.body;
+    const { message, sessionId = 'default', bookContext } = req.body;
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
+    // Get saved Q&A history for this book (only non-hidden ones)
+    let savedQAHistory: Array<{ question: string; answer: string }> = [];
+    if (bookContext?.id) {
+      const savedQA = libraryService.getSavedQAByBookId(bookContext.id, false);
+      savedQAHistory = savedQA.map(qa => ({ question: qa.question, answer: qa.answer }));
+    }
+
     const agent = getOrCreateAgent(sessionId);
-    const response = await agent.query(message);
+    const response = await agent.query(message, bookContext, savedQAHistory);
     res.json(response);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Saved Q&A endpoints
+app.get('/api/books/:id/qa', (req, res) => {
+  try {
+    const includeHidden = req.query.includeHidden === 'true';
+    const savedQA = libraryService.getSavedQAByBookId(parseInt(req.params.id), includeHidden);
+    const hiddenCount = libraryService.getHiddenQACountByBookId(parseInt(req.params.id));
+    res.json({ savedQA, count: savedQA.length, hiddenCount });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/books/:id/qa', (req, res) => {
+  try {
+    const qa: Omit<SavedQA, 'id'> = {
+      bookId: parseInt(req.params.id),
+      question: req.body.question,
+      answer: req.body.answer,
+      suggestions: req.body.suggestions,
+      hidden: req.body.hidden || false,
+      createdAt: new Date().toISOString(),
+    };
+    const id = libraryService.saveQA(qa);
+    res.status(201).json({ id, message: 'Q&A saved successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/qa/:id/hide', (req, res) => {
+  try {
+    const success = libraryService.hideQA(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Saved Q&A not found' });
+    }
+    res.json({ message: 'Q&A hidden successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/qa/:id/unhide', (req, res) => {
+  try {
+    const success = libraryService.unhideQA(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Saved Q&A not found' });
+    }
+    res.json({ message: 'Q&A unhidden successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/qa/:id', (req, res) => {
+  try {
+    const success = libraryService.deleteSavedQA(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Saved Q&A not found' });
+    }
+    res.json({ message: 'Q&A deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

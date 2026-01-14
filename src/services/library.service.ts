@@ -1,5 +1,5 @@
 import { DatabaseManager } from '../database/schema.js';
-import { Book, Note } from '../types/index.js';
+import { Book, Note, SavedQA } from '../types/index.js';
 import type Database from 'better-sqlite3';
 
 export class LibraryService {
@@ -202,5 +202,60 @@ export class LibraryService {
   getBooksByStatus(status: string): Book[] {
     const stmt = this.db.prepare('SELECT * FROM books WHERE status = ? ORDER BY dateAdded DESC');
     return stmt.all(status) as Book[];
+  }
+
+  // Saved Q&A methods
+  saveQA(qa: Omit<SavedQA, 'id'>): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO saved_qa (bookId, question, answer, suggestions, hidden, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      qa.bookId,
+      qa.question,
+      qa.answer,
+      qa.suggestions || null,
+      qa.hidden ? 1 : 0,
+      qa.createdAt
+    );
+
+    return result.lastInsertRowid as number;
+  }
+
+  getSavedQAByBookId(bookId: number, includeHidden: boolean = false): SavedQA[] {
+    const query = includeHidden
+      ? 'SELECT * FROM saved_qa WHERE bookId = ? ORDER BY createdAt ASC'
+      : 'SELECT * FROM saved_qa WHERE bookId = ? AND (hidden = 0 OR hidden IS NULL) ORDER BY createdAt ASC';
+    const stmt = this.db.prepare(query);
+    const results = stmt.all(bookId) as any[];
+    return results.map(r => ({
+      ...r,
+      hidden: r.hidden === 1
+    })) as SavedQA[];
+  }
+
+  getHiddenQACountByBookId(bookId: number): number {
+    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM saved_qa WHERE bookId = ? AND hidden = 1');
+    const result = stmt.get(bookId) as { count: number };
+    return result.count;
+  }
+
+  hideQA(id: number): boolean {
+    const stmt = this.db.prepare('UPDATE saved_qa SET hidden = 1 WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
+  }
+
+  unhideQA(id: number): boolean {
+    const stmt = this.db.prepare('UPDATE saved_qa SET hidden = 0 WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
+  }
+
+  deleteSavedQA(id: number): boolean {
+    const stmt = this.db.prepare('DELETE FROM saved_qa WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
   }
 }

@@ -15,7 +15,15 @@ export class AIAgentService {
     });
   }
 
-  async query(userMessage: string): Promise<AIResponse> {
+  private lastBookContextId: number | null = null;
+
+  async query(userMessage: string, bookContext?: { id: number; title: string; author: string; summary?: string; genre?: string; tags?: string }, savedQAHistory?: Array<{ question: string; answer: string }>): Promise<AIResponse> {
+    // Clear conversation history if book context changes
+    if (bookContext?.id !== this.lastBookContextId) {
+      this.conversationHistory = [];
+      this.lastBookContextId = bookContext?.id || null;
+    }
+
     const tools: Anthropic.Tool[] = [
       {
         name: 'search_books',
@@ -103,6 +111,29 @@ export class AIAgentService {
 
     const libraryContext = await this.getLibraryContext();
 
+    const savedQAStr = savedQAHistory && savedQAHistory.length > 0
+      ? `
+
+PREVIOUS Q&A ABOUT THIS BOOK:
+${savedQAHistory.map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer.substring(0, 300)}${qa.answer.length > 300 ? '...' : ''}`).join('\n\n')}
+
+When generating follow-up suggestions, consider what topics have already been discussed and suggest NEW angles or deeper exploration.`
+      : '';
+
+    const bookContextStr = bookContext
+      ? `
+CURRENTLY SELECTED BOOK:
+- Title: "${bookContext.title}"
+- Author: ${bookContext.author}
+- Book ID: ${bookContext.id}
+${bookContext.genre ? `- Genre: ${bookContext.genre}` : ''}
+${bookContext.tags ? `- Tags: ${bookContext.tags}` : ''}
+${bookContext.summary ? `- Summary: ${bookContext.summary}` : ''}
+${savedQAStr}
+
+The user is asking about this specific book. Focus your responses on this book unless they explicitly ask about something else.`
+      : '';
+
     this.conversationHistory.push({
       role: 'user',
       content: userMessage,
@@ -116,6 +147,7 @@ export class AIAgentService {
 
 Current Library Context:
 ${libraryContext}
+${bookContextStr}
 
 Guidelines:
 - Be conversational and helpful
@@ -124,13 +156,21 @@ Guidelines:
 - Help users discover books they might enjoy
 - Track reading progress and suggest what to read next
 - When discussing books, include relevant details like title, author, and status
-- Be proactive in suggesting books from their "want-to-read" list`,
+- Be proactive in suggesting books from their "want-to-read" list
+${bookContext ? `- Focus on the currently selected book "${bookContext.title}" unless asked otherwise` : ''}
+
+IMPORTANT: At the end of your response, always suggest 3 relevant follow-up questions or actions the user might want to take. Format them as:
+---SUGGESTIONS---
+1. [First suggestion]
+2. [Second suggestion]
+3. [Third suggestion]`,
       messages: this.conversationHistory,
     });
 
     let finalResponse: AIResponse = {
       message: '',
       books: [],
+      suggestions: [],
     };
 
     const assistantMessage: Anthropic.MessageParam = {
@@ -138,10 +178,13 @@ Guidelines:
       content: response.content,
     };
 
+    let hasToolUse = false;
+
     for (const block of response.content) {
       if (block.type === 'text') {
         finalResponse.message += block.text;
       } else if (block.type === 'tool_use') {
+        hasToolUse = true;
         const toolResult = await this.handleToolUse(block.name, block.input);
 
         this.conversationHistory.push(assistantMessage);
@@ -186,11 +229,31 @@ Guidelines:
       }
     }
 
-    if (response.stop_reason === 'end_turn' && finalResponse.message === '') {
+    // Only add assistant message if there was no tool use (tool use already handles its own history)
+    if (!hasToolUse) {
       this.conversationHistory.push(assistantMessage);
     }
 
+    // Extract suggestions from the response
+    finalResponse = this.extractSuggestions(finalResponse);
+
     return finalResponse;
+  }
+
+  private extractSuggestions(response: AIResponse): AIResponse {
+    const suggestionsMatch = response.message.match(/---SUGGESTIONS---\s*([\s\S]*?)$/i);
+    if (suggestionsMatch) {
+      const suggestionsText = suggestionsMatch[1].trim();
+      const suggestions = suggestionsText
+        .split(/\n/)
+        .map(line => line.replace(/^\d+\.\s*/, '').trim())
+        .filter(line => line.length > 0)
+        .slice(0, 3);
+
+      response.suggestions = suggestions;
+      response.message = response.message.replace(/---SUGGESTIONS---[\s\S]*$/i, '').trim();
+    }
+    return response;
   }
 
   private async handleToolUse(toolName: string, input: any): Promise<any> {

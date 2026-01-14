@@ -41,4 +41,15 @@ export interface AIResponse {
   books?: Book[];
   recommendations?: Book[];
   action?: string;
+  suggestions?: string[];
+}
+
+export interface SavedQA {
+  id?: number;
+  bookId: number;
+  question: string;
+  answer: string;
+  suggestions?: string;
+  hidden?: boolean;
+  createdAt: string;
 }

@@ -50,11 +50,23 @@ export class DatabaseManager {
         FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS saved_qa (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bookId INTEGER NOT NULL,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        suggestions TEXT,
+        hidden INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
       CREATE INDEX IF NOT EXISTS idx_books_author ON books(author);
       CREATE INDEX IF NOT EXISTS idx_books_status ON books(status);
       CREATE INDEX IF NOT EXISTS idx_books_genre ON books(genre);
       CREATE INDEX IF NOT EXISTS idx_notes_bookId ON notes(bookId);
+      CREATE INDEX IF NOT EXISTS idx_saved_qa_bookId ON saved_qa(bookId);
 
       CREATE VIRTUAL TABLE IF NOT EXISTS books_fts USING fts5(
         title, author, description, genre, tags, content=books, content_rowid=id
