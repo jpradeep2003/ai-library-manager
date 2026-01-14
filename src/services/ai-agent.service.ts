@@ -173,65 +173,72 @@ IMPORTANT: At the end of your response, always suggest 3 relevant follow-up ques
       suggestions: [],
     };
 
-    const assistantMessage: Anthropic.MessageParam = {
-      role: 'assistant',
-      content: response.content,
-    };
+    // Process response in a loop to handle multiple tool calls
+    let currentResponse = response;
+    const maxIterations = 5; // Prevent infinite loops
 
-    let hasToolUse = false;
+    for (let i = 0; i < maxIterations; i++) {
+      const hasToolUse = currentResponse.content.some(block => block.type === 'tool_use');
 
-    for (const block of response.content) {
-      if (block.type === 'text') {
-        finalResponse.message += block.text;
-      } else if (block.type === 'tool_use') {
-        hasToolUse = true;
-        const toolResult = await this.handleToolUse(block.name, block.input);
-
-        this.conversationHistory.push(assistantMessage);
-        this.conversationHistory.push({
-          role: 'user',
-          content: [
-            {
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: JSON.stringify(toolResult),
-            },
-          ],
-        });
-
-        const followUp = await this.client.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          tools,
-          system: `You are an AI assistant for a personal library management system. Provide a natural, conversational response based on the tool results.`,
-          messages: this.conversationHistory,
-        });
-
-        for (const followUpBlock of followUp.content) {
-          if (followUpBlock.type === 'text') {
-            finalResponse.message += followUpBlock.text;
+      if (!hasToolUse) {
+        // No tool use - extract text and we're done
+        for (const block of currentResponse.content) {
+          if (block.type === 'text') {
+            finalResponse.message = block.text; // Use final text only, not accumulated
           }
         }
-
-        if (toolResult.books) {
-          finalResponse.books = toolResult.books;
-        }
-        if (toolResult.recommendations) {
-          finalResponse.recommendations = toolResult.recommendations;
-        }
-
         this.conversationHistory.push({
           role: 'assistant',
-          content: followUp.content,
+          content: currentResponse.content,
         });
-
         break;
       }
-    }
 
-    // Only add assistant message if there was no tool use (tool use already handles its own history)
-    if (!hasToolUse) {
-      this.conversationHistory.push(assistantMessage);
+      // Process tool use
+      for (const block of currentResponse.content) {
+        if (block.type === 'tool_use') {
+          const toolResult = await this.handleToolUse(block.name, block.input);
+
+          this.conversationHistory.push({
+            role: 'assistant',
+            content: currentResponse.content,
+          });
+          this.conversationHistory.push({
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: JSON.stringify(toolResult),
+              },
+            ],
+          });
+
+          if (toolResult.books) {
+            finalResponse.books = toolResult.books;
+          }
+          if (toolResult.recommendations) {
+            finalResponse.recommendations = toolResult.recommendations;
+          }
+
+          // Get follow-up response
+          currentResponse = await this.client.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            tools,
+            system: `You are an AI assistant for a personal library management system. Provide a complete, final response based on the tool results. Never say things like "Let me check", "I'll look that up", or "It looks like I need to". Just provide the direct answer.
+
+IMPORTANT: At the end of your response, always suggest 3 relevant follow-up questions. Format them as:
+---SUGGESTIONS---
+1. [First suggestion]
+2. [Second suggestion]
+3. [Third suggestion]`,
+            messages: this.conversationHistory,
+          });
+
+          break; // Process one tool at a time
+        }
+      }
     }
 
     // Extract suggestions from the response

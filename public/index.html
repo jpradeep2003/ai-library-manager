@@ -15,76 +15,230 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #f0f2f5;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
 
         .top-bar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 24px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            height: 50px;
         }
 
         .top-bar h1 {
-            font-size: 1.4em;
+            font-size: 1.2em;
         }
 
         .stats-inline {
             display: flex;
-            gap: 24px;
-            font-size: 14px;
+            gap: 20px;
+            font-size: 13px;
         }
 
         .stats-inline .stat {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .stats-inline .stat-num {
             font-weight: 700;
-            font-size: 18px;
+            font-size: 16px;
         }
 
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 16px;
+        /* Three-panel layout */
+        .app-container {
+            display: flex;
+            height: calc(100vh - 50px);
+            transition: all 0.3s ease;
         }
 
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 16px;
-        }
-
-        .card {
+        .panel {
+            transition: all 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             background: white;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-right: 1px solid #e0e0e0;
         }
 
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 48px;
+            flex-shrink: 0;
+        }
+
+        .panel-header h2 {
+            font-size: 14px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        /* Panel states */
+        .library-panel {
+            flex: 0 0 70%;
+            min-width: 200px;
+        }
+
+        .book-panel {
+            flex: 0 0 0%;
+            min-width: 0;
+            opacity: 0;
+            padding: 0;
+        }
+
+        .book-panel.visible {
+            flex: 0 0 50%;
+            min-width: 300px;
+            opacity: 1;
+        }
+
+        .chat-panel {
+            flex: 0 0 30%;
+            min-width: 280px;
+        }
+
+        /* State: Book selected */
+        .app-container.book-selected .library-panel {
+            flex: 0 0 15%;
+            min-width: 60px;
+        }
+
+        .app-container.book-selected .book-panel {
+            flex: 0 0 50%;
+            min-width: 300px;
+            opacity: 1;
+        }
+
+        .app-container.book-selected .chat-panel {
+            flex: 0 0 35%;
+        }
+
+        /* State: Chat active */
+        .app-container.chat-active .library-panel {
+            flex: 0 0 15%;
+            min-width: 60px;
+        }
+
+        .app-container.chat-active .book-panel {
+            flex: 0 0 15%;
+            min-width: 60px;
+            opacity: 1;
+        }
+
+        .app-container.chat-active .chat-panel {
+            flex: 0 0 70%;
+        }
+
+        /* State: Chat active without book */
+        .app-container.chat-active-no-book .library-panel {
+            flex: 0 0 30%;
+        }
+
+        .app-container.chat-active-no-book .book-panel {
+            flex: 0 0 0%;
+            min-width: 0;
+            opacity: 0;
+        }
+
+        .app-container.chat-active-no-book .chat-panel {
+            flex: 0 0 70%;
+        }
+
+        /* Minimized panel styles */
+        .panel.minimized .panel-content {
+            display: none;
+        }
+
+        .panel.minimized .panel-header {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 16px 8px;
+            cursor: pointer;
+        }
+
+        .panel.minimized .panel-header h2 {
+            font-size: 12px;
+        }
+
+        .panel.minimized .panel-header .panel-actions {
+            display: none;
+        }
+
+        /* Panel control buttons */
+        .panel-btn {
+            background: none;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            padding: 4px 8px;
+            color: #666;
+            font-size: 14px;
+            border-radius: 4px;
+            line-height: 1;
+            min-width: 28px;
+        }
+
+        .panel-btn:hover {
+            background: #f0f4ff;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .panel-btn.close-btn:hover {
+            background: #fee;
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        /* Library panel specific */
         .controls {
             display: flex;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
             align-items: center;
+        }
+
+        .controls.compact {
+            flex-direction: column;
+        }
+
+        .controls.compact > * {
+            width: 100%;
         }
 
         button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 14px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             transition: transform 0.2s, opacity 0.2s;
+            white-space: nowrap;
         }
 
         button:hover {
@@ -93,7 +247,7 @@
 
         button.secondary {
             background: #6c757d;
-            padding: 8px 12px;
+            padding: 6px 10px;
         }
 
         button.small {
@@ -102,10 +256,10 @@
         }
 
         input, select, textarea {
-            padding: 8px 12px;
+            padding: 8px 10px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             font-family: inherit;
         }
 
@@ -116,21 +270,20 @@
 
         .filters-row {
             display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .filters-row select {
             flex: 1;
-            min-width: 0;
+            min-width: 80px;
         }
 
         .book-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 16px;
-            max-height: calc(100vh - 200px);
-            overflow-y: auto;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
             padding: 4px;
         }
 
@@ -143,11 +296,17 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             display: flex;
             flex-direction: column;
+            border: 2px solid transparent;
         }
 
         .book-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .book-card.selected {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
         .book-cover {
@@ -168,11 +327,11 @@
 
         .book-cover-placeholder {
             color: #999;
-            font-size: 36px;
+            font-size: 32px;
         }
 
         .book-info {
-            padding: 10px;
+            padding: 8px;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -181,7 +340,7 @@
         .book-card h3 {
             color: #333;
             margin: 0 0 4px 0;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.3;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -191,7 +350,7 @@
 
         .book-card .author {
             color: #666;
-            font-size: 11px;
+            font-size: 10px;
             margin-bottom: 4px;
         }
 
@@ -201,9 +360,9 @@
 
         .status-badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
             font-weight: 600;
             text-transform: capitalize;
         }
@@ -213,18 +372,81 @@
         .status-want-to-read { background: #d1ecf1; color: #0c5460; }
         .status-on-hold { background: #e2e3e5; color: #383d41; }
 
-        .ai-chat {
-            height: calc(100vh - 120px);
+        /* Book panel specific */
+        .book-detail-header {
             display: flex;
-            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 16px;
         }
 
-        .ai-chat h2 {
+        .book-detail-cover {
+            width: 100px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        .book-detail-info h2 {
+            margin: 0 0 8px 0;
             font-size: 16px;
+        }
+
+        .book-detail-info p {
+            margin: 3px 0;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .book-detail-info .tags {
+            margin-top: 8px;
+        }
+
+        .book-detail-info .tag {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .content-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
             margin-bottom: 12px;
+        }
+
+        .content-section h3 {
+            font-size: 13px;
+            margin-bottom: 8px;
             color: #333;
         }
 
+        .content-section p,
+        .content-section .markdown-content {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .content-section .markdown-content p { margin-bottom: 8px; }
+        .content-section .markdown-content p:last-child { margin-bottom: 0; }
+
+        .book-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+        }
+
+        /* Chat panel specific */
         .book-context-banner {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -234,7 +456,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .book-context-banner .book-title {
@@ -248,7 +470,7 @@
         .book-context-banner button {
             background: rgba(255,255,255,0.2);
             padding: 4px 10px;
-            font-size: 11px;
+            font-size: 10px;
             margin-left: 8px;
             flex-shrink: 0;
         }
@@ -256,29 +478,29 @@
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            margin-bottom: 8px;
-            padding: 12px;
+            padding: 10px;
             background: #f8f9fa;
             border-radius: 6px;
+            margin-bottom: 8px;
         }
 
         .message {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             padding: 10px;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.5;
         }
 
         .message.user {
             background: #667eea;
             color: white;
-            margin-left: 30px;
+            margin-left: 20px;
         }
 
         .message.assistant {
             background: white;
-            margin-right: 30px;
+            margin-right: 20px;
             border: 1px solid #e0e0e0;
         }
 
@@ -288,10 +510,9 @@
         .message.assistant ul, .message.assistant ol { margin: 8px 0; padding-left: 20px; }
         .message.assistant li { margin-bottom: 4px; }
         .message.assistant strong { font-weight: 600; }
-        .message.assistant h1, .message.assistant h2, .message.assistant h3 { margin: 12px 0 8px 0; }
 
         .suggestions-container {
-            padding: 10px;
+            padding: 8px;
             background: #f0f4ff;
             border-radius: 6px;
             border-left: 3px solid #667eea;
@@ -299,7 +520,7 @@
         }
 
         .suggestions-container h4 {
-            font-size: 11px;
+            font-size: 10px;
             color: #667eea;
             margin-bottom: 6px;
         }
@@ -314,7 +535,7 @@
             margin-bottom: 4px;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
         }
 
@@ -356,8 +577,8 @@
         }
 
         .typing-indicator span {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             background: #667eea;
             border-radius: 50%;
             animation: typing 1.4s infinite ease-in-out;
@@ -384,7 +605,7 @@
             border: none;
             padding: 4px 10px;
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 10px;
             cursor: pointer;
             margin-left: 10px;
         }
@@ -397,9 +618,9 @@
         .saved-qa-separator {
             display: flex;
             align-items: center;
-            margin: 12px 0;
+            margin: 10px 0;
             color: #888;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         .saved-qa-separator::before,
@@ -411,27 +632,89 @@
         }
 
         .saved-qa-separator span {
-            padding: 0 10px;
+            padding: 0 8px;
             white-space: nowrap;
         }
 
-        .message.saved-qa-msg {
-            opacity: 0.9;
+        /* Collapsible Q&A styles */
+        .qa-item {
+            margin-bottom: 6px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .qa-item.hidden-qa {
+            opacity: 0.6;
             border-style: dashed;
         }
 
-        .message.user.saved-qa-msg {
-            background: #8a9be6;
+        .qa-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            gap: 8px;
+            transition: background 0.2s;
         }
 
-        .message.hidden-qa-msg {
-            opacity: 0.5;
-            background: #f5f5f5 !important;
-            color: #888 !important;
+        .qa-header:hover {
+            opacity: 0.95;
         }
 
-        .message.user.hidden-qa-msg {
-            background: #d0d0d0 !important;
+        .qa-header .expand-icon {
+            font-size: 10px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .qa-item.expanded .qa-header .expand-icon {
+            transform: rotate(90deg);
+        }
+
+        .qa-header .question-text {
+            flex: 1;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .qa-item.expanded .qa-header .question-text {
+            white-space: normal;
+        }
+
+        .qa-body {
+            display: none;
+            padding: 10px;
+            background: #f8f9fa;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .qa-item.expanded .qa-body {
+            display: block;
+        }
+
+        .qa-body p { margin-bottom: 6px; }
+        .qa-body p:last-child { margin-bottom: 0; }
+        .qa-body ul, .qa-body ol { margin: 6px 0; padding-left: 18px; }
+        .qa-body li { margin-bottom: 3px; }
+
+        .qa-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .qa-actions button {
+            padding: 4px 8px;
+            font-size: 10px;
         }
 
         .qa-controls {
@@ -464,99 +747,18 @@
             background: #fff3cd;
             border-radius: 6px;
             margin-bottom: 8px;
-            font-size: 12px;
+            font-size: 11px;
             color: #856404;
         }
 
         .hidden-toggle button {
             padding: 4px 10px;
-            font-size: 11px;
+            font-size: 10px;
             background: #ffc107;
             color: #333;
         }
 
-        /* Collapsible Q&A styles */
-        .qa-item {
-            margin-bottom: 8px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e0e0e0;
-            background: white;
-        }
-
-        .qa-item.hidden-qa {
-            opacity: 0.6;
-            border-style: dashed;
-        }
-
-        .qa-header {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            cursor: pointer;
-            gap: 10px;
-            transition: background 0.2s;
-        }
-
-        .qa-header:hover {
-            opacity: 0.95;
-        }
-
-        .qa-header .expand-icon {
-            font-size: 12px;
-            transition: transform 0.2s;
-            flex-shrink: 0;
-        }
-
-        .qa-item.expanded .qa-header .expand-icon {
-            transform: rotate(90deg);
-        }
-
-        .qa-header .question-text {
-            flex: 1;
-            font-size: 13px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .qa-item.expanded .qa-header .question-text {
-            white-space: normal;
-        }
-
-        .qa-body {
-            display: none;
-            padding: 12px;
-            background: #f8f9fa;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .qa-item.expanded .qa-body {
-            display: block;
-        }
-
-        .qa-body p { margin-bottom: 8px; }
-        .qa-body p:last-child { margin-bottom: 0; }
-        .qa-body ul, .qa-body ol { margin: 8px 0; padding-left: 20px; }
-        .qa-body li { margin-bottom: 4px; }
-        .qa-body strong { font-weight: 600; }
-
-        .qa-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .qa-actions button {
-            padding: 4px 10px;
-            font-size: 11px;
-        }
-
+        /* Modal for add book */
         .modal {
             display: none;
             position: fixed;
@@ -576,7 +778,7 @@
             background: white;
             padding: 24px;
             border-radius: 8px;
-            max-width: 600px;
+            max-width: 500px;
             max-height: 85vh;
             overflow-y: auto;
             width: 90%;
@@ -585,7 +787,7 @@
         .modal-content h2 {
             margin-bottom: 16px;
             color: #333;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .modal-content input,
@@ -604,77 +806,35 @@
 
         .close-modal:hover { color: #333; }
 
-        .loading {
+        .loading-text {
             text-align: center;
             color: #666;
             padding: 20px;
-            font-size: 13px;
+            font-size: 12px;
         }
 
-        /* Book detail modal styles */
-        .book-detail-header {
+        /* Empty state for book panel */
+        .empty-state {
             display: flex;
-            gap: 16px;
-            margin-bottom: 16px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #888;
+            text-align: center;
+            padding: 20px;
         }
 
-        .book-detail-cover {
-            width: 120px;
-            height: 180px;
-            object-fit: cover;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            flex-shrink: 0;
-        }
-
-        .book-detail-info h2 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-        }
-
-        .book-detail-info p {
-            margin: 4px 0;
-            font-size: 13px;
-            color: #555;
-        }
-
-        .book-detail-info .tags {
-            margin-top: 8px;
-        }
-
-        .book-detail-info .tag {
-            display: inline-block;
-            background: #e9ecef;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            margin-right: 4px;
-            margin-bottom: 4px;
-        }
-
-        .content-section {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
+        .empty-state-icon {
+            font-size: 48px;
             margin-bottom: 12px;
         }
 
-        .content-section h3 {
-            font-size: 14px;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
-        .content-section p,
-        .content-section .markdown-content {
+        .empty-state p {
             font-size: 13px;
-            line-height: 1.6;
-            color: #444;
         }
 
-        .content-section .markdown-content p { margin-bottom: 8px; }
-        .content-section .markdown-content p:last-child { margin-bottom: 0; }
-
+        /* Saved Q&A section in book panel */
         .saved-qa-section {
             margin-top: 12px;
             border-top: 1px solid #e0e0e0;
@@ -682,48 +842,8 @@
         }
 
         .saved-qa-section h3 {
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .saved-qa-item {
-            background: #f8f9fa;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-
-        .saved-qa-item .question {
-            color: #667eea;
-            font-weight: 600;
             font-size: 13px;
-            margin-bottom: 6px;
-        }
-
-        .saved-qa-item .answer {
-            color: #333;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .saved-qa-item .answer p { margin-bottom: 6px; }
-        .saved-qa-item .answer p:last-child { margin-bottom: 0; }
-
-        .saved-qa-item .qa-actions {
-            margin-top: 6px;
-            text-align: right;
-        }
-
-        .book-actions {
-            margin-top: 16px;
-            padding-top: 12px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 10px;
-        }
-
-        .delete-btn {
-            background: #dc3545;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -733,16 +853,21 @@
         <div class="stats-inline" id="stats"></div>
     </div>
 
-    <div class="container">
-        <div class="main-content">
-            <div class="card">
-                <div class="controls">
-                    <button onclick="showAddBookModal()">+ Add Book</button>
-                    <button class="secondary" onclick="loadBooks()">Refresh</button>
-                    <input type="text" id="searchInput" placeholder="Search books..." style="flex: 1; min-width: 150px;" onkeypress="if(event.key==='Enter')searchBooks()">
-                    <button onclick="searchBooks()">Search</button>
+    <div class="app-container" id="appContainer">
+        <!-- Library Panel -->
+        <div class="panel library-panel" id="libraryPanel">
+            <div class="panel-header">
+                <h2>Library</h2>
+                <div class="panel-actions">
+                    <button class="small" onclick="showAddBookModal()">+ Add</button>
                 </div>
-                <div class="filters-row">
+            </div>
+            <div class="panel-content">
+                <div class="controls" id="libraryControls">
+                    <input type="text" id="searchInput" placeholder="Search..." style="flex: 1; min-width: 100px;" onkeypress="if(event.key==='Enter')searchBooks()">
+                    <button class="small secondary" onclick="searchBooks()">Go</button>
+                </div>
+                <div class="filters-row" id="filtersRow">
                     <select id="filterStatus" onchange="applyFilters()">
                         <option value="">All Status</option>
                         <option value="want-to-read">Want to Read</option>
@@ -754,26 +879,46 @@
                         <option value="">All Genres</option>
                     </select>
                     <select id="sortBy" onchange="applyFilters()">
-                        <option value="dateAdded">Date Added</option>
+                        <option value="dateAdded">Date</option>
                         <option value="title">Title</option>
                         <option value="author">Author</option>
-                        <option value="publishedYear">Year</option>
-                    </select>
-                    <select id="sortOrder" onchange="applyFilters()" style="width: 80px;">
-                        <option value="desc">Desc</option>
-                        <option value="asc">Asc</option>
                     </select>
                 </div>
                 <div class="book-grid" id="bookGrid"></div>
             </div>
+        </div>
 
-            <div class="card ai-chat">
+        <!-- Book Panel -->
+        <div class="panel book-panel" id="bookPanel">
+            <div class="panel-header">
+                <h2 id="bookPanelTitle">Book Details</h2>
+                <div class="panel-actions">
+                    <button class="panel-btn" onclick="toggleBookPanelSize()" id="bookPanelToggle" title="Maximize">&#x26F6;</button>
+                    <button class="panel-btn close-btn" onclick="closeBookPanel()" title="Close">&times;</button>
+                </div>
+            </div>
+            <div class="panel-content" id="bookPanelContent">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📖</div>
+                    <p>Select a book to view details</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="panel chat-panel" id="chatPanel">
+            <div class="panel-header">
                 <h2>AI Assistant</h2>
+                <div class="panel-actions">
+                    <button class="panel-btn" onclick="toggleChatPanelSize()" id="chatPanelToggle" title="Maximize">&#x26F6;</button>
+                </div>
+            </div>
+            <div class="panel-content" style="display: flex; flex-direction: column;">
                 <div id="bookContextBanner" style="display: none;"></div>
                 <div id="hiddenToggleContainer" style="display: none;"></div>
                 <div class="chat-messages" id="chatMessages">
                     <div class="message assistant">
-                        Hello! I can help you explore your library, get book recommendations, and answer questions about your books.
+                        Select a book or ask me anything about your library.
                     </div>
                 </div>
                 <div id="suggestionsContainer"></div>
@@ -785,11 +930,12 @@
         </div>
     </div>
 
+    <!-- Add Book Modal -->
     <div class="modal" id="addBookModal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('addBookModal')">&times;</span>
             <h2>Add New Book</h2>
-            <p style="color: #666; margin-bottom: 12px; font-size: 13px;">Enter title and author. We'll fetch metadata automatically.</p>
+            <p style="color: #666; margin-bottom: 12px; font-size: 12px;">Enter title and author. We'll fetch metadata automatically.</p>
             <input type="text" id="title" placeholder="Title *" required>
             <input type="text" id="author" placeholder="Author *" required>
             <input type="text" id="isbn" placeholder="ISBN (optional)">
@@ -800,20 +946,144 @@
                 <option value="on-hold">On Hold</option>
             </select>
             <input type="text" id="tags" placeholder="Tags (comma-separated, optional)">
-            <div id="addBookStatus" style="margin: 10px 0; color: #666; font-size: 13px;"></div>
+            <div id="addBookStatus" style="margin: 10px 0; color: #666; font-size: 12px;"></div>
             <button onclick="addBook()">Add Book</button>
-        </div>
-    </div>
-
-    <div class="modal" id="viewBookModal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeModal('viewBookModal')">&times;</span>
-            <div id="bookDetails"></div>
         </div>
     </div>
 
     <script>
         const API_BASE = 'http://localhost:3000/api';
+
+        // Panel state management
+        let currentState = 'initial'; // initial, book-selected, chat-active, chat-active-no-book
+        let selectedBookId = null;
+        let currentViewedBook = null;
+        let currentBookContext = null;
+        let showHiddenQA = false;
+        let isProcessing = false;
+        let lastQuestion = '';
+        let lastAnswer = '';
+        let lastSavedQAId = null;
+
+        function setPanelState(state) {
+            const container = document.getElementById('appContainer');
+            container.classList.remove('book-selected', 'chat-active', 'chat-active-no-book');
+
+            if (state !== 'initial') {
+                container.classList.add(state);
+            }
+            currentState = state;
+
+            // Update panel minimized states
+            updatePanelMinimization();
+        }
+
+        function updatePanelMinimization() {
+            const libraryPanel = document.getElementById('libraryPanel');
+            const bookPanel = document.getElementById('bookPanel');
+
+            // Check if panels should be minimized based on width
+            const libraryWidth = libraryPanel.getBoundingClientRect().width;
+            const bookWidth = bookPanel.getBoundingClientRect().width;
+
+            if (libraryWidth < 150) {
+                libraryPanel.classList.add('minimized');
+            } else {
+                libraryPanel.classList.remove('minimized');
+            }
+
+            if (bookWidth < 150 && bookWidth > 0) {
+                bookPanel.classList.add('minimized');
+            } else {
+                bookPanel.classList.remove('minimized');
+            }
+
+            // Update toggle button icons/titles
+            updateToggleButtons();
+        }
+
+        function updateToggleButtons() {
+            const bookToggle = document.getElementById('bookPanelToggle');
+            const chatToggle = document.getElementById('chatPanelToggle');
+
+            // Book panel toggle - check if it's maximized (book-selected state and not chat-active)
+            if (currentState === 'book-selected') {
+                bookToggle.innerHTML = '&#x2014;'; // minimize icon (dash)
+                bookToggle.title = 'Minimize';
+            } else {
+                bookToggle.innerHTML = '&#x26F6;'; // maximize icon
+                bookToggle.title = 'Maximize';
+            }
+
+            // Chat panel toggle - check if it's maximized
+            if (currentState === 'chat-active' || currentState === 'chat-active-no-book') {
+                chatToggle.innerHTML = '&#x2014;'; // minimize icon
+                chatToggle.title = 'Minimize';
+            } else {
+                chatToggle.innerHTML = '&#x26F6;'; // maximize icon
+                chatToggle.title = 'Maximize';
+            }
+        }
+
+        function toggleBookPanelSize() {
+            if (!selectedBookId) return;
+
+            if (currentState === 'book-selected') {
+                // Currently maximized, minimize it (go to chat-active if there's context)
+                if (currentBookContext) {
+                    setPanelState('chat-active');
+                } else {
+                    setPanelState('initial');
+                }
+            } else {
+                // Currently minimized, maximize it
+                setPanelState('book-selected');
+            }
+        }
+
+        function toggleChatPanelSize() {
+            if (currentState === 'chat-active' || currentState === 'chat-active-no-book') {
+                // Currently maximized, minimize it
+                if (selectedBookId) {
+                    setPanelState('book-selected');
+                } else {
+                    setPanelState('initial');
+                }
+            } else {
+                // Currently minimized, maximize it
+                if (currentBookContext) {
+                    setPanelState('chat-active');
+                } else {
+                    setPanelState('chat-active-no-book');
+                }
+            }
+        }
+
+        function closeBookPanel() {
+            selectedBookId = null;
+            currentViewedBook = null;
+
+            // Remove selection from book cards
+            document.querySelectorAll('.book-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Reset book panel content
+            document.getElementById('bookPanelContent').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📖</div>
+                    <p>Select a book to view details</p>
+                </div>
+            `;
+            document.getElementById('bookPanelTitle').textContent = 'Book Details';
+
+            // Return to appropriate state
+            if (currentBookContext) {
+                setPanelState('chat-active-no-book');
+            } else {
+                setPanelState('initial');
+            }
+        }
 
         // Simple markdown rendering function
         function renderMarkdown(text) {
@@ -821,12 +1091,17 @@
             if (typeof marked !== 'undefined') {
                 return marked.parse(text);
             }
-            // Fallback: basic formatting
             return text
                 .replace(/\n\n/g, '</p><p>')
                 .replace(/\n/g, '<br>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         async function loadStats() {
@@ -835,9 +1110,8 @@
                 const stats = await response.json();
                 document.getElementById('stats').innerHTML = `
                     <div class="stat"><span class="stat-num">${stats.total}</span> Total</div>
-                    <div class="stat"><span class="stat-num">${stats.completed}</span> Completed</div>
+                    <div class="stat"><span class="stat-num">${stats.completed}</span> Done</div>
                     <div class="stat"><span class="stat-num">${stats.reading}</span> Reading</div>
-                    <div class="stat"><span class="stat-num">${stats.wantToRead}</span> To Read</div>
                 `;
             } catch (error) {
                 console.error('Error loading stats:', error);
@@ -857,12 +1131,12 @@
         function displayBooks(books) {
             const grid = document.getElementById('bookGrid');
             if (books.length === 0) {
-                grid.innerHTML = '<p class="loading">No books found. Add your first book!</p>';
+                grid.innerHTML = '<p class="loading-text">No books found. Add your first book!</p>';
                 return;
             }
 
             grid.innerHTML = books.map(book => `
-                <div class="book-card" onclick="viewBook(${book.id})">
+                <div class="book-card ${selectedBookId === book.id ? 'selected' : ''}" onclick="viewBook(${book.id})">
                     <div class="book-cover">
                         ${book.coverUrl
                             ? `<img src="${book.coverUrl}" alt="${book.title}" loading="lazy">`
@@ -877,12 +1151,6 @@
                     </div>
                 </div>
             `).join('');
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
 
         async function searchBooks() {
@@ -900,15 +1168,22 @@
             }
         }
 
-        // Store current book data for the askAboutBook function
-        let currentViewedBook = null;
-
         async function viewBook(id) {
             try {
+                // Update selection in grid
+                document.querySelectorAll('.book-card.selected').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                event.currentTarget.classList.add('selected');
+
+                selectedBookId = id;
+
                 const response = await fetch(`${API_BASE}/books/${id}`);
                 const data = await response.json();
                 const book = data.book;
                 currentViewedBook = book;
+
+                document.getElementById('bookPanelTitle').textContent = book.title;
 
                 const tagsHtml = book.tags ? `
                     <div class="tags">
@@ -916,7 +1191,7 @@
                     </div>
                 ` : '';
 
-                document.getElementById('bookDetails').innerHTML = `
+                document.getElementById('bookPanelContent').innerHTML = `
                     <div class="book-detail-header">
                         ${book.coverUrl ? `<img src="${book.coverUrl}" alt="${escapeHtml(book.title)}" class="book-detail-cover">` : ''}
                         <div class="book-detail-info">
@@ -944,13 +1219,16 @@
                     ` : ''}
                     <div id="savedQASection"></div>
                     <div class="book-actions">
-                        <button onclick="askAboutCurrentBook()">Ask AI About This Book</button>
-                        <button class="delete-btn" onclick="deleteBook(${book.id})">Delete Book</button>
+                        <button onclick="askAboutCurrentBook()">Ask AI</button>
+                        <button class="delete-btn" onclick="deleteBook(${book.id})">Delete</button>
                     </div>
                 `;
 
                 await loadSavedQA(book.id);
-                document.getElementById('viewBookModal').classList.add('active');
+
+                // Show book panel
+                setPanelState('book-selected');
+
             } catch (error) {
                 console.error('Error viewing book:', error);
             }
@@ -969,7 +1247,6 @@
                 tags: book.tags || ''
             };
 
-            // Reset hidden state for new book context
             showHiddenQA = false;
 
             // Update banner
@@ -977,36 +1254,31 @@
             banner.style.display = 'block';
             banner.innerHTML = `
                 <div class="book-context-banner">
-                    <span class="book-title">Asking about: ${escapeHtml(book.title)}</span>
+                    <span class="book-title">${escapeHtml(book.title)}</span>
                     <button onclick="clearBookContext()">Clear</button>
                 </div>
             `;
 
-            // Clear chat and show initial message
-            document.getElementById('chatMessages').innerHTML = `
-                <div class="message assistant" id="bookIntroMsg">
-                    I'm now focused on "<strong>${escapeHtml(book.title)}</strong>" by ${escapeHtml(book.author)}. What would you like to know?
-                </div>
-            `;
+            // Clear chat
+            document.getElementById('chatMessages').innerHTML = '';
 
-            // Load and display saved Q&A for this book
+            // Load saved Q&A for this book
             await loadSavedQAInChat(book.id);
 
-            // Generate context-aware suggestions based on saved Q&A
+            // Generate suggestions
             await generateInitialSuggestions(book.id);
 
-            closeModal('viewBookModal');
+            // Switch to chat-active state
+            setPanelState('chat-active');
             document.getElementById('chatInput').focus();
         }
 
         async function generateInitialSuggestions(bookId) {
-            // Get saved Q&A to avoid repeating questions
             try {
                 const response = await fetch(`${API_BASE}/books/${bookId}/qa`);
                 const data = await response.json();
                 const savedQA = data.savedQA || [];
 
-                // Default suggestions
                 const defaultSuggestions = [
                     'What are the main themes?',
                     'Recommend similar books',
@@ -1018,15 +1290,11 @@
                     'Is this book worth reading?'
                 ];
 
-                // Get questions that have already been asked (normalize for comparison)
                 const askedQuestions = savedQA.map(qa => qa.question.toLowerCase().trim());
 
-                // Filter out suggestions that are similar to already-asked questions
                 const availableSuggestions = defaultSuggestions.filter(suggestion => {
                     const normalizedSuggestion = suggestion.toLowerCase().trim();
-                    // Check if any asked question is similar
                     return !askedQuestions.some(asked => {
-                        // Simple similarity check: contains key words
                         const suggestionWords = normalizedSuggestion.split(/\s+/);
                         const matchCount = suggestionWords.filter(word =>
                             word.length > 3 && asked.includes(word)
@@ -1035,13 +1303,11 @@
                     });
                 });
 
-                // Show up to 3 suggestions
                 const suggestionsToShow = availableSuggestions.slice(0, 3);
 
                 if (suggestionsToShow.length > 0) {
                     showSuggestions(suggestionsToShow);
                 } else if (savedQA.length > 0) {
-                    // All default suggestions have been asked, show more advanced ones
                     showSuggestions([
                         'What did I miss about this book?',
                         'Deeper analysis of the themes',
@@ -1052,7 +1318,6 @@
                 }
             } catch (error) {
                 console.error('Error generating suggestions:', error);
-                // Fallback to default suggestions
                 showSuggestions([
                     'What are the main themes?',
                     'Recommend similar books',
@@ -1060,8 +1325,6 @@
                 ]);
             }
         }
-
-        let showHiddenQA = false;
 
         async function loadSavedQAInChat(bookId) {
             try {
@@ -1071,45 +1334,30 @@
                 const savedQA = data.savedQA || [];
                 const hiddenCount = data.hiddenCount || 0;
 
-                // Update hidden toggle
                 updateHiddenToggle(hiddenCount, bookId);
 
                 const messagesDiv = document.getElementById('chatMessages');
 
-                // Remove previous saved QA elements but keep the intro message
                 const elementsToRemove = messagesDiv.querySelectorAll('.saved-qa-separator, .qa-item, .qa-container');
                 elementsToRemove.forEach(el => el.remove());
 
                 if (savedQA.length > 0) {
-                    // Find the intro message to insert after
-                    const introElement = document.getElementById('bookIntroMsg');
-
-                    // Add a separator for saved Q&A
                     const separatorDiv = document.createElement('div');
                     separatorDiv.className = 'saved-qa-separator';
-                    separatorDiv.innerHTML = `<span>Previously asked (${savedQA.length}) - click to expand</span>`;
+                    separatorDiv.innerHTML = `<span>Previously asked (${savedQA.length})</span>`;
+                    messagesDiv.appendChild(separatorDiv);
 
-                    if (introElement && introElement.nextSibling) {
-                        messagesDiv.insertBefore(separatorDiv, introElement.nextSibling);
-                    } else {
-                        messagesDiv.appendChild(separatorDiv);
-                    }
-
-                    // Create container for collapsible Q&A items
                     const qaContainer = document.createElement('div');
                     qaContainer.className = 'qa-container';
                     separatorDiv.after(qaContainer);
 
-                    // Add each saved Q&A as collapsible items
                     savedQA.forEach((qa, index) => {
                         const isHidden = qa.hidden === true;
-                        const isLast = index === savedQA.length - 1;
 
                         const qaItem = document.createElement('div');
-                        qaItem.className = `qa-item${isHidden ? ' hidden-qa' : ''}${isLast ? ' expanded' : ''}`;
+                        qaItem.className = `qa-item${isHidden ? ' hidden-qa' : ''}`;
                         qaItem.dataset.qaId = qa.id;
 
-                        // Header (clickable question)
                         const header = document.createElement('div');
                         header.className = 'qa-header';
                         header.onclick = () => toggleQAExpand(qaItem);
@@ -1118,12 +1366,10 @@
                             <span class="question-text">${escapeHtml(qa.question)}</span>
                         `;
 
-                        // Body (answer + controls)
                         const body = document.createElement('div');
                         body.className = 'qa-body';
                         body.innerHTML = renderMarkdown(qa.answer);
 
-                        // Add actions
                         const actions = document.createElement('div');
                         actions.className = 'qa-actions';
                         if (isHidden) {
@@ -1143,12 +1389,6 @@
                         qaItem.appendChild(body);
                         qaContainer.appendChild(qaItem);
                     });
-
-                    // Add another separator before new chat
-                    const endSeparatorDiv = document.createElement('div');
-                    endSeparatorDiv.className = 'saved-qa-separator';
-                    endSeparatorDiv.innerHTML = `<span>New conversation</span>`;
-                    qaContainer.after(endSeparatorDiv);
                 }
 
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -1160,15 +1400,12 @@
         function toggleQAExpand(qaItem) {
             const wasExpanded = qaItem.classList.contains('expanded');
 
-            // Collapse all other items
             document.querySelectorAll('.qa-item.expanded').forEach(item => {
                 item.classList.remove('expanded');
             });
 
-            // Toggle this item (expand if it was collapsed)
             if (!wasExpanded) {
                 qaItem.classList.add('expanded');
-                // Scroll the expanded item into view
                 qaItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
@@ -1201,7 +1438,6 @@
                     console.error('Failed to hide Q&A:', response.status);
                     return;
                 }
-                // Remove from UI - works with both old message-container and new qa-item
                 const qaItem = document.querySelector(`.qa-item[data-qa-id="${qaId}"]`);
                 if (qaItem) {
                     qaItem.remove();
@@ -1210,7 +1446,6 @@
                 if (container) {
                     container.remove();
                 }
-                // Update hidden count and reload
                 await loadSavedQAInChat(bookId);
             } catch (error) {
                 console.error('Error hiding Q&A:', error);
@@ -1224,7 +1459,6 @@
                     console.error('Failed to unhide Q&A:', response.status);
                     return;
                 }
-                // Reload the chat to show unhidden Q&A in proper order
                 await loadSavedQAInChat(bookId);
             } catch (error) {
                 console.error('Error unhiding Q&A:', error);
@@ -1249,7 +1483,6 @@
                     console.error('Failed to delete Q&A:', response.status);
                     return;
                 }
-                // Remove from UI - works with both old message-container and new qa-item
                 const qaItem = document.querySelector(`.qa-item[data-qa-id="${qaId}"]`);
                 if (qaItem) {
                     qaItem.remove();
@@ -1258,7 +1491,6 @@
                 if (container) {
                     container.remove();
                 }
-                // Update hidden count
                 await updateHiddenCount(bookId);
             } catch (error) {
                 console.error('Error deleting Q&A:', error);
@@ -1275,16 +1507,23 @@
                 if (savedQA.length > 0) {
                     section.innerHTML = `
                         <div class="saved-qa-section">
-                            <h3>Saved Q&A</h3>
-                            ${savedQA.map(qa => `
-                                <div class="saved-qa-item">
-                                    <div class="question">Q: ${escapeHtml(qa.question)}</div>
-                                    <div class="answer">${renderMarkdown(qa.answer)}</div>
-                                    <div class="qa-actions">
-                                        <button class="small delete-btn" onclick="deleteSavedQA(${qa.id}, ${bookId})">Delete</button>
+                            <h3>Saved Q&A (${savedQA.length})</h3>
+                            <div class="qa-container">
+                                ${savedQA.map(qa => `
+                                    <div class="qa-item" data-qa-id="${qa.id}">
+                                        <div class="qa-header" onclick="toggleQAExpand(this.parentElement)">
+                                            <span class="expand-icon">▶</span>
+                                            <span class="question-text">${escapeHtml(qa.question)}</span>
+                                        </div>
+                                        <div class="qa-body">
+                                            ${renderMarkdown(qa.answer)}
+                                            <div class="qa-actions">
+                                                <button class="delete-btn" onclick="event.stopPropagation(); deleteSavedQA(${qa.id}, ${bookId})">Delete</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            `).join('')}
+                                `).join('')}
+                            </div>
                         </div>
                     `;
                 } else {
@@ -1310,10 +1549,15 @@
             try {
                 const response = await fetch(`${API_BASE}/books/${id}`, { method: 'DELETE' });
                 if (response.ok) {
-                    closeModal('viewBookModal');
+                    closeBookPanel();
                     loadBooks();
                     loadStats();
                     loadFilters();
+
+                    // Clear book context if this was the active book
+                    if (currentBookContext && currentBookContext.id === id) {
+                        clearBookContext();
+                    }
                 }
             } catch (error) {
                 console.error('Error deleting book:', error);
@@ -1362,11 +1606,6 @@
             }
         }
 
-        // Book context state
-        let currentBookContext = null;
-        let lastQuestion = '';
-        let lastAnswer = '';
-
         function clearBookContext() {
             currentBookContext = null;
             showHiddenQA = false;
@@ -1377,9 +1616,16 @@
             document.getElementById('suggestionsContainer').innerHTML = '';
             document.getElementById('chatMessages').innerHTML = `
                 <div class="message assistant">
-                    Hello! I can help you explore your library, get book recommendations, and answer questions about your books.
+                    Select a book or ask me anything about your library.
                 </div>
             `;
+
+            // Return to appropriate state
+            if (selectedBookId) {
+                setPanelState('book-selected');
+            } else {
+                setPanelState('initial');
+            }
         }
 
         function showSuggestions(suggestions) {
@@ -1402,9 +1648,6 @@
             sendMessage();
         }
 
-        let isProcessing = false;
-        let lastRequestBody = null;
-
         async function sendMessage(retryMessage = null) {
             const input = document.getElementById('chatInput');
             const sendBtn = document.querySelector('.chat-input button');
@@ -1413,7 +1656,14 @@
 
             isProcessing = true;
             sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
+            sendBtn.textContent = '...';
+
+            // Expand chat panel when sending a message
+            if (currentBookContext) {
+                setPanelState('chat-active');
+            } else {
+                setPanelState('chat-active-no-book');
+            }
 
             if (!retryMessage) {
                 lastQuestion = message;
@@ -1422,7 +1672,6 @@
             }
             document.getElementById('suggestionsContainer').innerHTML = '';
 
-            // Show loading indicator
             const loadingId = showLoadingMessage();
 
             try {
@@ -1430,10 +1679,9 @@
                 if (currentBookContext) {
                     requestBody.bookContext = currentBookContext;
                 }
-                lastRequestBody = requestBody;
 
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
 
                 const response = await fetch(`${API_BASE}/ai/query`, {
                     method: 'POST',
@@ -1450,7 +1698,6 @@
 
                 const data = await response.json();
 
-                // Remove loading message
                 removeLoadingMessage(loadingId);
 
                 if (data.error) {
@@ -1460,7 +1707,6 @@
                 lastAnswer = data.message;
                 const messageContainer = addChatMessage('assistant', data.message);
 
-                // Auto-save Q&A if in book context
                 if (currentBookContext && lastQuestion && lastAnswer) {
                     const savedId = await autoSaveQA(data.suggestions);
                     if (savedId && messageContainer) {
@@ -1477,11 +1723,11 @@
 
                 let errorMsg = 'Something went wrong. ';
                 if (error.name === 'AbortError') {
-                    errorMsg = 'Request timed out. The AI is taking too long to respond. ';
+                    errorMsg = 'Request timed out. ';
                 } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    errorMsg = 'Network error. Please check your connection. ';
+                    errorMsg = 'Network error. ';
                 } else if (error.message.includes('Server error')) {
-                    errorMsg = 'Server error. Please try again. ';
+                    errorMsg = 'Server error. ';
                 }
 
                 showErrorMessage(errorMsg, message);
@@ -1502,7 +1748,7 @@
                 <div class="typing-indicator">
                     <span></span><span></span><span></span>
                 </div>
-                <span>AI is thinking...</span>
+                <span>Thinking...</span>
             `;
             messagesDiv.appendChild(loadingDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -1529,10 +1775,8 @@
         }
 
         function retryLastMessage(message) {
-            // Remove the error message
             const errorMessages = document.querySelectorAll('.message.error');
             errorMessages.forEach(el => el.remove());
-            // Retry the message
             sendMessage(message);
         }
 
@@ -1583,7 +1827,6 @@
                     }),
                 });
                 const data = await response.json();
-                // Store the saved QA ID for potential hide/delete actions
                 lastSavedQAId = data.id;
                 return data.id;
             } catch (error) {
@@ -1591,8 +1834,6 @@
                 return null;
             }
         }
-
-        let lastSavedQAId = null;
 
         function handleChatKeyPress(event) {
             if (event.key === 'Enter' && !isProcessing) sendMessage();
@@ -1641,6 +1882,15 @@
             }
         }
 
+        // Handle window resize to update minimization
+        window.addEventListener('resize', () => {
+            setTimeout(updatePanelMinimization, 350);
+        });
+
+        // Also update after transitions
+        document.getElementById('appContainer').addEventListener('transitionend', updatePanelMinimization);
+
+        // Initialize
         loadStats();
         loadBooks();
         loadFilters();
