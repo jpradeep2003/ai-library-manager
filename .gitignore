@@ -6,3 +6,5 @@ dist/
 .DS_Store
 *.log
 .tmp.driveupload
+playwright-report/
+test-results/
