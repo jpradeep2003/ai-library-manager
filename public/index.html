@@ -1272,13 +1272,6 @@
                     <button class="small secondary" onclick="searchBooks()">Go</button>
                 </div>
                 <div class="filters-row" id="filtersRow">
-                    <select id="filterStatus" onchange="applyFilters()">
-                        <option value="">All Status</option>
-                        <option value="want-to-read">Want to Read</option>
-                        <option value="reading">Reading</option>
-                        <option value="completed">Completed</option>
-                        <option value="on-hold">On Hold</option>
-                    </select>
                     <div class="genre-dropdown-container">
                         <button class="genre-dropdown-btn" onclick="toggleGenreDropdown(event)">
                             <span id="genreDropdownLabel">All Genres</span>
@@ -1290,13 +1283,21 @@
                         </div>
                     </div>
                     <select id="sortBy" onchange="applyFilters()">
-                        <option value="dateAdded">Date</option>
-                        <option value="title">Title</option>
-                        <option value="author">Author</option>
+                        <option value="publishedYear-desc">Published (Newest)</option>
+                        <option value="publishedYear-asc">Published (Oldest)</option>
+                        <option value="title-asc">Title (A-Z)</option>
+                        <option value="title-desc">Title (Z-A)</option>
+                        <option value="author-asc">Author (A-Z)</option>
+                        <option value="author-desc">Author (Z-A)</option>
+                        <option value="dateAdded-desc">Added (Recent)</option>
+                        <option value="dateAdded-asc">Added (Oldest)</option>
                     </select>
-                    <select id="sortOrder" onchange="applyFilters()">
-                        <option value="desc">Newest</option>
-                        <option value="asc">Oldest</option>
+                    <select id="filterStatus" onchange="applyFilters()">
+                        <option value="">All Status</option>
+                        <option value="want-to-read">Want to Read</option>
+                        <option value="reading">Reading</option>
+                        <option value="completed">Completed</option>
+                        <option value="on-hold">On Hold</option>
                     </select>
                 </div>
                 <div class="book-grid" id="bookGrid"></div>
@@ -2767,8 +2768,11 @@
 
         async function applyFilters() {
             const status = document.getElementById('filterStatus').value;
-            const sortBy = document.getElementById('sortBy').value;
-            const sortOrder = document.getElementById('sortOrder').value;
+            const sortValue = document.getElementById('sortBy').value;
+            // Parse combined sort value (e.g., "publishedYear-desc" -> sortBy="publishedYear", sortOrder="desc")
+            const lastDashIndex = sortValue.lastIndexOf('-');
+            const sortBy = sortValue.substring(0, lastDashIndex);
+            const sortOrder = sortValue.substring(lastDashIndex + 1);
 
             try {
                 let books;
@@ -2789,9 +2793,9 @@
                     books.sort((a, b) => {
                         let aVal = a[sortBy] || '';
                         let bVal = b[sortBy] || '';
-                        if (sortBy === 'dateAdded') {
-                            aVal = new Date(aVal).getTime();
-                            bVal = new Date(bVal).getTime();
+                        if (sortBy === 'dateAdded' || sortBy === 'publishedYear') {
+                            aVal = sortBy === 'publishedYear' ? (aVal || 0) : new Date(aVal).getTime();
+                            bVal = sortBy === 'publishedYear' ? (bVal || 0) : new Date(bVal).getTime();
                         }
                         const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
                         return sortOrder === 'desc' ? -cmp : cmp;
