@@ -52,7 +52,7 @@ export class DatabaseManager {
 
       CREATE TABLE IF NOT EXISTS saved_qa (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bookId INTEGER NOT NULL,
+        bookId INTEGER,
         question TEXT NOT NULL,
         answer TEXT NOT NULL,
         suggestions TEXT,

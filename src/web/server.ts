@@ -203,10 +203,13 @@ app.post('/api/ai/query', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Get saved Q&A history for this book (only non-hidden ones)
+    // Get saved Q&A history (book-level or library-level)
     let savedQAHistory: Array<{ question: string; answer: string }> = [];
     if (bookContext?.id) {
       const savedQA = libraryService.getSavedQAByBookId(bookContext.id, false);
+      savedQAHistory = savedQA.map(qa => ({ question: qa.question, answer: qa.answer }));
+    } else {
+      const savedQA = libraryService.getLibraryQA(false);
       savedQAHistory = savedQA.map(qa => ({ question: qa.question, answer: qa.answer }));
     }
 
@@ -218,7 +221,7 @@ app.post('/api/ai/query', async (req, res) => {
   }
 });
 
-// Saved Q&A endpoints
+// Saved Q&A endpoints - Book level
 app.get('/api/books/:id/qa', (req, res) => {
   try {
     const includeHidden = req.query.includeHidden === 'true';
@@ -234,6 +237,35 @@ app.post('/api/books/:id/qa', (req, res) => {
   try {
     const qa: Omit<SavedQA, 'id'> = {
       bookId: parseInt(req.params.id),
+      question: req.body.question,
+      answer: req.body.answer,
+      suggestions: req.body.suggestions,
+      hidden: req.body.hidden || false,
+      createdAt: new Date().toISOString(),
+    };
+    const id = libraryService.saveQA(qa);
+    res.status(201).json({ id, message: 'Q&A saved successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Saved Q&A endpoints - Library level (no book context)
+app.get('/api/library/qa', (req, res) => {
+  try {
+    const includeHidden = req.query.includeHidden === 'true';
+    const savedQA = libraryService.getLibraryQA(includeHidden);
+    const hiddenCount = libraryService.getHiddenLibraryQACount();
+    res.json({ savedQA, count: savedQA.length, hiddenCount });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/library/qa', (req, res) => {
+  try {
+    const qa: Omit<SavedQA, 'id'> = {
+      bookId: null,
       question: req.body.question,
       answer: req.body.answer,
       suggestions: req.body.suggestions,

@@ -211,6 +211,30 @@
             color: #dc3545;
         }
 
+        .panel-btn.nav-btn {
+            padding: 2px 6px;
+            font-size: 12px;
+            min-width: 24px;
+        }
+
+        .panel-btn.nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .panel-header-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .panel-header-left h2 {
+            flex: 1;
+            min-width: 0;
+        }
+
         /* Library panel specific */
         .controls {
             display: flex;
@@ -891,7 +915,11 @@
         <!-- Book Panel -->
         <div class="panel book-panel" id="bookPanel">
             <div class="panel-header">
-                <h2 id="bookPanelTitle">Book Details</h2>
+                <div class="panel-header-left">
+                    <button class="panel-btn nav-btn" onclick="goBackInHistory()" id="historyBackBtn" title="Previous book" disabled>&#x2190;</button>
+                    <button class="panel-btn nav-btn" onclick="goForwardInHistory()" id="historyForwardBtn" title="Next book" disabled>&#x2192;</button>
+                    <h2 id="bookPanelTitle">Book Details</h2>
+                </div>
                 <div class="panel-actions">
                     <button class="panel-btn" onclick="toggleBookPanelSize()" id="bookPanelToggle" title="Maximize">&#x26F6;</button>
                     <button class="panel-btn close-btn" onclick="closeBookPanel()" title="Close">&times;</button>
@@ -964,6 +992,12 @@
         let lastQuestion = '';
         let lastAnswer = '';
         let lastSavedQAId = null;
+
+        // Book history management
+        const MAX_BOOK_HISTORY = 10;
+        let bookHistory = []; // Array of book IDs
+        let historyIndex = -1; // Current position in history
+        let isNavigatingHistory = false; // Flag to prevent adding to history during navigation
 
         function setPanelState(state) {
             const container = document.getElementById('appContainer');
@@ -1077,12 +1111,77 @@
             `;
             document.getElementById('bookPanelTitle').textContent = 'Book Details';
 
-            // Return to appropriate state
-            if (currentBookContext) {
-                setPanelState('chat-active-no-book');
-            } else {
-                setPanelState('initial');
+            // Clear book context in chat since no book is selected
+            clearBookContext();
+
+            // Clear history when closing book panel
+            bookHistory = [];
+            historyIndex = -1;
+            updateHistoryButtons();
+
+            // Return to initial state
+            setPanelState('initial');
+        }
+
+        // Book history management
+        function addToBookHistory(bookId) {
+            if (isNavigatingHistory) return;
+
+            // Remove existing entry if book is already in history
+            const existingIndex = bookHistory.indexOf(bookId);
+            if (existingIndex !== -1) {
+                bookHistory.splice(existingIndex, 1);
+                // Adjust historyIndex if needed
+                if (existingIndex <= historyIndex) {
+                    historyIndex--;
+                }
             }
+
+            // If we're not at the end of history, remove forward history
+            if (historyIndex < bookHistory.length - 1) {
+                bookHistory = bookHistory.slice(0, historyIndex + 1);
+            }
+
+            // Add new book to history
+            bookHistory.push(bookId);
+
+            // Trim history if it exceeds max
+            if (bookHistory.length > MAX_BOOK_HISTORY) {
+                bookHistory.shift();
+            }
+
+            // Update index to point to the new entry
+            historyIndex = bookHistory.length - 1;
+
+            updateHistoryButtons();
+        }
+
+        function goBackInHistory() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                isNavigatingHistory = true;
+                viewBook(bookHistory[historyIndex]);
+                isNavigatingHistory = false;
+                updateHistoryButtons();
+            }
+        }
+
+        function goForwardInHistory() {
+            if (historyIndex < bookHistory.length - 1) {
+                historyIndex++;
+                isNavigatingHistory = true;
+                viewBook(bookHistory[historyIndex]);
+                isNavigatingHistory = false;
+                updateHistoryButtons();
+            }
+        }
+
+        function updateHistoryButtons() {
+            const backBtn = document.getElementById('historyBackBtn');
+            const forwardBtn = document.getElementById('historyForwardBtn');
+
+            backBtn.disabled = historyIndex <= 0;
+            forwardBtn.disabled = historyIndex >= bookHistory.length - 1;
         }
 
         // Simple markdown rendering function
@@ -1174,9 +1273,16 @@
                 document.querySelectorAll('.book-card.selected').forEach(card => {
                     card.classList.remove('selected');
                 });
-                event.currentTarget.classList.add('selected');
+                // Find and select the book card (may not exist if called from history)
+                const bookCard = document.querySelector(`.book-card[onclick="viewBook(${id})"]`);
+                if (bookCard) {
+                    bookCard.classList.add('selected');
+                }
 
                 selectedBookId = id;
+
+                // Add to history (unless we're navigating history)
+                addToBookHistory(id);
 
                 const response = await fetch(`${API_BASE}/books/${id}`);
                 const data = await response.json();
@@ -1219,12 +1325,14 @@
                     ` : ''}
                     <div id="savedQASection"></div>
                     <div class="book-actions">
-                        <button onclick="askAboutCurrentBook()">Ask AI</button>
                         <button class="delete-btn" onclick="deleteBook(${book.id})">Delete</button>
                     </div>
                 `;
 
                 await loadSavedQA(book.id);
+
+                // Auto-set book context in chat panel
+                await setBookContextInChat(book);
 
                 // Show book panel
                 setPanelState('book-selected');
@@ -1234,9 +1342,11 @@
             }
         }
 
-        async function askAboutCurrentBook() {
-            if (!currentViewedBook) return;
-            const book = currentViewedBook;
+        async function setBookContextInChat(book) {
+            // Only update if switching to a different book
+            if (currentBookContext && currentBookContext.id === book.id) {
+                return;
+            }
 
             currentBookContext = {
                 id: book.id,
@@ -1259,27 +1369,24 @@
                 </div>
             `;
 
-            // Clear chat
+            // Clear chat and load saved Q&A for this book
             document.getElementById('chatMessages').innerHTML = '';
-
-            // Load saved Q&A for this book
             await loadSavedQAInChat(book.id);
 
             // Generate suggestions
             await generateInitialSuggestions(book.id);
-
-            // Switch to chat-active state
-            setPanelState('chat-active');
-            document.getElementById('chatInput').focus();
         }
 
-        async function generateInitialSuggestions(bookId) {
+        async function generateInitialSuggestions(bookId = null) {
             try {
-                const response = await fetch(`${API_BASE}/books/${bookId}/qa`);
+                // Fetch Q&A based on context (book or library)
+                const endpoint = bookId ? `${API_BASE}/books/${bookId}/qa` : `${API_BASE}/library/qa`;
+                const response = await fetch(endpoint);
                 const data = await response.json();
                 const savedQA = data.savedQA || [];
 
-                const defaultSuggestions = [
+                // Different default suggestions for book vs library context
+                const defaultSuggestions = bookId ? [
                     'What are the main themes?',
                     'Recommend similar books',
                     'Key takeaways from this book?',
@@ -1288,6 +1395,15 @@
                     'How does this compare to other books by the author?',
                     'What are the key arguments or ideas?',
                     'Is this book worth reading?'
+                ] : [
+                    'What should I read next?',
+                    'Show my reading statistics',
+                    'Recommend books based on my history',
+                    'What genres do I read most?',
+                    'Find books similar to ones I completed',
+                    'What books are in my want-to-read list?',
+                    'Summarize my reading habits',
+                    'Which books have I been reading the longest?'
                 ];
 
                 const askedQuestions = savedQA.map(qa => qa.question.toLowerCase().trim());
@@ -1308,28 +1424,41 @@
                 if (suggestionsToShow.length > 0) {
                     showSuggestions(suggestionsToShow);
                 } else if (savedQA.length > 0) {
-                    showSuggestions([
+                    const fallbackSuggestions = bookId ? [
                         'What did I miss about this book?',
                         'Deeper analysis of the themes',
                         'How does this relate to current events?'
-                    ]);
+                    ] : [
+                        'Any new book recommendations?',
+                        'What should be my next read?',
+                        'Analyze my reading patterns'
+                    ];
+                    showSuggestions(fallbackSuggestions);
                 } else {
                     showSuggestions(defaultSuggestions.slice(0, 3));
                 }
             } catch (error) {
                 console.error('Error generating suggestions:', error);
-                showSuggestions([
+                const fallback = bookId ? [
                     'What are the main themes?',
                     'Recommend similar books',
                     'Key takeaways from this book?'
-                ]);
+                ] : [
+                    'What should I read next?',
+                    'Show my reading statistics',
+                    'Recommend books based on my history'
+                ];
+                showSuggestions(fallback);
             }
         }
 
-        async function loadSavedQAInChat(bookId) {
+        async function loadSavedQAInChat(bookId = null) {
             try {
                 const includeHidden = showHiddenQA ? 'true' : 'false';
-                const response = await fetch(`${API_BASE}/books/${bookId}/qa?includeHidden=${includeHidden}`);
+                const endpoint = bookId
+                    ? `${API_BASE}/books/${bookId}/qa?includeHidden=${includeHidden}`
+                    : `${API_BASE}/library/qa?includeHidden=${includeHidden}`;
+                const response = await fetch(endpoint);
                 const data = await response.json();
                 const savedQA = data.savedQA || [];
                 const hiddenCount = data.hiddenCount || 0;
@@ -1410,7 +1539,7 @@
             }
         }
 
-        function updateHiddenToggle(hiddenCount, bookId) {
+        function updateHiddenToggle(hiddenCount, bookId = null) {
             const container = document.getElementById('hiddenToggleContainer');
             if (hiddenCount > 0) {
                 container.style.display = 'block';
@@ -1426,12 +1555,12 @@
             }
         }
 
-        async function toggleShowHidden(bookId) {
+        async function toggleShowHidden(bookId = null) {
             showHiddenQA = !showHiddenQA;
             await loadSavedQAInChat(bookId);
         }
 
-        async function hideQA(qaId, bookId) {
+        async function hideQA(qaId, bookId = null) {
             try {
                 const response = await fetch(`${API_BASE}/qa/${qaId}/hide`, { method: 'PUT' });
                 if (!response.ok) {
@@ -1452,7 +1581,7 @@
             }
         }
 
-        async function unhideQA(qaId, bookId) {
+        async function unhideQA(qaId, bookId = null) {
             try {
                 const response = await fetch(`${API_BASE}/qa/${qaId}/unhide`, { method: 'PUT' });
                 if (!response.ok) {
@@ -1465,9 +1594,12 @@
             }
         }
 
-        async function updateHiddenCount(bookId) {
+        async function updateHiddenCount(bookId = null) {
             try {
-                const response = await fetch(`${API_BASE}/books/${bookId}/qa?includeHidden=true`);
+                const endpoint = bookId
+                    ? `${API_BASE}/books/${bookId}/qa?includeHidden=true`
+                    : `${API_BASE}/library/qa?includeHidden=true`;
+                const response = await fetch(endpoint);
                 const data = await response.json();
                 updateHiddenToggle(data.hiddenCount || 0, bookId);
             } catch (error) {
@@ -1475,7 +1607,7 @@
             }
         }
 
-        async function deleteQAFromChat(qaId, bookId) {
+        async function deleteQAFromChat(qaId, bookId = null) {
             if (!confirm('Delete this Q&A?')) return;
             try {
                 const response = await fetch(`${API_BASE}/qa/${qaId}`, { method: 'DELETE' });
@@ -1606,19 +1738,23 @@
             }
         }
 
-        function clearBookContext() {
+        async function clearBookContext() {
             currentBookContext = null;
             showHiddenQA = false;
-            document.getElementById('bookContextBanner').style.display = 'none';
-            document.getElementById('bookContextBanner').innerHTML = '';
-            document.getElementById('hiddenToggleContainer').style.display = 'none';
-            document.getElementById('hiddenToggleContainer').innerHTML = '';
-            document.getElementById('suggestionsContainer').innerHTML = '';
-            document.getElementById('chatMessages').innerHTML = `
-                <div class="message assistant">
-                    Select a book or ask me anything about your library.
+
+            // Show library context banner
+            const banner = document.getElementById('bookContextBanner');
+            banner.style.display = 'block';
+            banner.innerHTML = `
+                <div class="book-context-banner" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <span class="book-title">Library</span>
                 </div>
             `;
+
+            // Load library Q&A and suggestions
+            document.getElementById('chatMessages').innerHTML = '';
+            await loadSavedQAInChat(null);
+            await generateInitialSuggestions(null);
 
             // Return to appropriate state
             if (selectedBookId) {
@@ -1707,10 +1843,12 @@
                 lastAnswer = data.message;
                 const messageContainer = addChatMessage('assistant', data.message);
 
-                if (currentBookContext && lastQuestion && lastAnswer) {
+                // Auto-save Q&A for both book and library context
+                if (lastQuestion && lastAnswer) {
                     const savedId = await autoSaveQA(data.suggestions);
                     if (savedId && messageContainer) {
-                        addControlsToMessage(messageContainer, savedId, currentBookContext.id);
+                        const contextId = currentBookContext ? currentBookContext.id : null;
+                        addControlsToMessage(messageContainer, savedId, contextId);
                     }
                 }
 
@@ -1800,7 +1938,7 @@
             return containerDiv;
         }
 
-        function addControlsToMessage(containerDiv, qaId, bookId) {
+        function addControlsToMessage(containerDiv, qaId, bookId = null) {
             containerDiv.dataset.qaId = qaId;
             const controls = document.createElement('div');
             controls.className = 'qa-controls';
@@ -1812,12 +1950,17 @@
         }
 
         async function autoSaveQA(suggestions) {
-            if (!currentBookContext || !lastQuestion || !lastAnswer) {
+            if (!lastQuestion || !lastAnswer) {
                 return null;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/books/${currentBookContext.id}/qa`, {
+                // Save to book or library endpoint based on context
+                const endpoint = currentBookContext
+                    ? `${API_BASE}/books/${currentBookContext.id}/qa`
+                    : `${API_BASE}/library/qa`;
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1890,10 +2033,25 @@
         // Also update after transitions
         document.getElementById('appContainer').addEventListener('transitionend', updatePanelMinimization);
 
+        // Initialize library context in chat
+        async function initializeLibraryContext() {
+            const banner = document.getElementById('bookContextBanner');
+            banner.style.display = 'block';
+            banner.innerHTML = `
+                <div class="book-context-banner" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <span class="book-title">Library</span>
+                </div>
+            `;
+            document.getElementById('chatMessages').innerHTML = '';
+            await loadSavedQAInChat(null);
+            await generateInitialSuggestions(null);
+        }
+
         // Initialize
         loadStats();
         loadBooks();
         loadFilters();
+        initializeLibraryContext();
     </script>
 </body>
 </html>

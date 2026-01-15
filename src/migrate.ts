@@ -58,6 +58,46 @@ try {
     console.log('✓ Successfully created saved_qa table');
   }
 
+  // Check if bookId column allows NULL (for library-level Q&A)
+  // SQLite doesn't support altering column constraints, so we need to recreate the table
+  if (hasSavedQATable) {
+    const qaTableInfo: any[] = db.prepare("PRAGMA table_info(saved_qa)").all();
+    const bookIdCol = qaTableInfo.find((col: any) => col.name === 'bookId');
+
+    if (bookIdCol && bookIdCol.notnull === 1) {
+      console.log('Migrating saved_qa table to allow NULL bookId for library-level Q&A...');
+
+      // Create new table with nullable bookId
+      db.exec(`
+        CREATE TABLE saved_qa_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bookId INTEGER,
+          question TEXT NOT NULL,
+          answer TEXT NOT NULL,
+          suggestions TEXT,
+          hidden INTEGER DEFAULT 0,
+          createdAt TEXT NOT NULL,
+          FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
+        );
+      `);
+
+      // Copy existing data
+      db.exec(`
+        INSERT INTO saved_qa_new (id, bookId, question, answer, suggestions, hidden, createdAt)
+        SELECT id, bookId, question, answer, suggestions, hidden, createdAt FROM saved_qa;
+      `);
+
+      // Drop old table and rename new one
+      db.exec('DROP TABLE saved_qa;');
+      db.exec('ALTER TABLE saved_qa_new RENAME TO saved_qa;');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_saved_qa_bookId ON saved_qa(bookId);');
+
+      console.log('✓ Successfully migrated saved_qa table to allow NULL bookId');
+    } else {
+      console.log('✓ saved_qa.bookId already allows NULL');
+    }
+  }
+
   console.log('\n✓ Migration completed successfully!');
 } catch (error) {
   console.error('Migration failed:', error);

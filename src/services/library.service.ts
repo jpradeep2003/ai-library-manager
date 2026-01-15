@@ -212,7 +212,7 @@ export class LibraryService {
     `);
 
     const result = stmt.run(
-      qa.bookId,
+      qa.bookId || null,
       qa.question,
       qa.answer,
       qa.suggestions || null,
@@ -233,6 +233,25 @@ export class LibraryService {
       ...r,
       hidden: r.hidden === 1
     })) as SavedQA[];
+  }
+
+  // Library-level Q&A (bookId is null)
+  getLibraryQA(includeHidden: boolean = false): SavedQA[] {
+    const query = includeHidden
+      ? 'SELECT * FROM saved_qa WHERE bookId IS NULL ORDER BY createdAt ASC'
+      : 'SELECT * FROM saved_qa WHERE bookId IS NULL AND (hidden = 0 OR hidden IS NULL) ORDER BY createdAt ASC';
+    const stmt = this.db.prepare(query);
+    const results = stmt.all() as any[];
+    return results.map(r => ({
+      ...r,
+      hidden: r.hidden === 1
+    })) as SavedQA[];
+  }
+
+  getHiddenLibraryQACount(): number {
+    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM saved_qa WHERE bookId IS NULL AND hidden = 1');
+    const result = stmt.get() as { count: number };
+    return result.count;
   }
 
   getHiddenQACountByBookId(bookId: number): number {

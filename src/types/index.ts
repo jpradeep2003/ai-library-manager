@@ -46,7 +46,7 @@ export interface AIResponse {
 
 export interface SavedQA {
   id?: number;
-  bookId: number;
+  bookId?: number | null;  // null for library-level Q&A
   question: string;
   answer: string;
   suggestions?: string;
