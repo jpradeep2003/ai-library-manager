@@ -460,6 +460,44 @@
         .content-section .markdown-content p { margin-bottom: 8px; }
         .content-section .markdown-content p:last-child { margin-bottom: 0; }
 
+        /* Book reference links in Q&A */
+        .book-ref {
+            cursor: pointer;
+            border-bottom: 1px dashed #667eea;
+            transition: all 0.2s;
+        }
+
+        .book-ref:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .book-ref.in-library {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .book-ref.not-in-library {
+            color: #28a745;
+        }
+
+        .book-ref-tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            z-index: 1000;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .book-ref-tooltip.visible {
+            opacity: 1;
+        }
+
         .book-actions {
             display: flex;
             gap: 8px;
@@ -907,6 +945,10 @@
                         <option value="title">Title</option>
                         <option value="author">Author</option>
                     </select>
+                    <select id="sortOrder" onchange="applyFilters()">
+                        <option value="desc">Newest</option>
+                        <option value="asc">Oldest</option>
+                    </select>
                 </div>
                 <div class="book-grid" id="bookGrid"></div>
             </div>
@@ -993,11 +1035,41 @@
         let lastAnswer = '';
         let lastSavedQAId = null;
 
-        // Book history management
+        // Book history management - persisted in localStorage
         const MAX_BOOK_HISTORY = 10;
+        const HISTORY_STORAGE_KEY = 'bookHistory';
         let bookHistory = []; // Array of book IDs
         let historyIndex = -1; // Current position in history
         let isNavigatingHistory = false; // Flag to prevent adding to history during navigation
+
+        // Load history from localStorage
+        function loadBookHistory() {
+            try {
+                const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    bookHistory = data.history || [];
+                    historyIndex = data.index >= 0 && data.index < bookHistory.length ? data.index : bookHistory.length - 1;
+                }
+            } catch (e) {
+                console.error('Error loading book history:', e);
+                bookHistory = [];
+                historyIndex = -1;
+            }
+            updateHistoryButtons();
+        }
+
+        // Save history to localStorage
+        function saveBookHistory() {
+            try {
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify({
+                    history: bookHistory,
+                    index: historyIndex
+                }));
+            } catch (e) {
+                console.error('Error saving book history:', e);
+            }
+        }
 
         function setPanelState(state) {
             const container = document.getElementById('appContainer');
@@ -1114,11 +1186,6 @@
             // Clear book context in chat since no book is selected
             clearBookContext();
 
-            // Clear history when closing book panel
-            bookHistory = [];
-            historyIndex = -1;
-            updateHistoryButtons();
-
             // Return to initial state
             setPanelState('initial');
         }
@@ -1154,6 +1221,7 @@
             historyIndex = bookHistory.length - 1;
 
             updateHistoryButtons();
+            saveBookHistory();
         }
 
         function goBackInHistory() {
@@ -1163,6 +1231,7 @@
                 viewBook(bookHistory[historyIndex]);
                 isNavigatingHistory = false;
                 updateHistoryButtons();
+                saveBookHistory();
             }
         }
 
@@ -1173,6 +1242,7 @@
                 viewBook(bookHistory[historyIndex]);
                 isNavigatingHistory = false;
                 updateHistoryButtons();
+                saveBookHistory();
             }
         }
 
@@ -1201,6 +1271,238 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Cache for library books to avoid repeated API calls
+        let libraryBooksCache = null;
+        let libraryCacheTime = 0;
+        const CACHE_DURATION = 30000; // 30 seconds
+
+        async function getLibraryBooks() {
+            const now = Date.now();
+            if (libraryBooksCache && (now - libraryCacheTime) < CACHE_DURATION) {
+                return libraryBooksCache;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/books`);
+                const data = await response.json();
+                libraryBooksCache = data.books;
+                libraryCacheTime = now;
+                return data.books;
+            } catch (error) {
+                console.error('Error fetching library books:', error);
+                return [];
+            }
+        }
+
+        // Invalidate cache when books are added/deleted
+        function invalidateLibraryCache() {
+            libraryBooksCache = null;
+            libraryCacheTime = 0;
+        }
+
+        // Find a book in library by title (case-insensitive partial match)
+        function findBookInLibrary(title, books) {
+            const normalizedTitle = title.toLowerCase().trim();
+            // First try exact match
+            let match = books.find(b => b.title.toLowerCase() === normalizedTitle);
+            if (match) return match;
+            // Then try contains match
+            match = books.find(b => b.title.toLowerCase().includes(normalizedTitle) ||
+                                    normalizedTitle.includes(b.title.toLowerCase()));
+            return match;
+        }
+
+        // Process content to make book references clickable
+        async function processBookReferences(element) {
+            const books = await getLibraryBooks();
+
+            // Find all strong/bold elements (book titles are often bold in AI responses)
+            const strongElements = element.querySelectorAll('strong, b, em');
+
+            for (const el of strongElements) {
+                const text = el.textContent.trim();
+                // Skip short text or text that looks like labels
+                if (text.length < 3 || text.endsWith(':') || /^(by|author|title|page|chapter)/i.test(text)) {
+                    continue;
+                }
+
+                // Check if this looks like a book title (not a single word unless it's a known book)
+                const book = findBookInLibrary(text, books);
+
+                if (book) {
+                    // Book is in library - make it clickable to view
+                    el.classList.add('book-ref', 'in-library');
+                    el.dataset.bookId = book.id;
+                    el.dataset.bookTitle = book.title;
+                    el.title = `View "${book.title}" in library`;
+                    el.onclick = (e) => {
+                        e.preventDefault();
+                        viewBook(book.id);
+                    };
+                } else if (text.length > 5 && /[A-Z]/.test(text[0])) {
+                    // Potential book title not in library - offer to add
+                    // Only for capitalized text longer than 5 chars
+                    el.classList.add('book-ref', 'not-in-library');
+                    el.dataset.bookTitle = text;
+                    el.title = `Add "${text}" to library`;
+                    el.onclick = (e) => {
+                        e.preventDefault();
+                        promptAddBookFromReference(text, el);
+                    };
+                }
+            }
+
+            // Also look for quoted text patterns like "Book Title" or 'Book Title'
+            processQuotedBookReferences(element, books);
+        }
+
+        function processQuotedBookReferences(element, books) {
+            // Process text nodes to find quoted book titles
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            const nodesToProcess = [];
+
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                // Skip if parent is already a book-ref
+                if (node.parentElement.classList.contains('book-ref')) continue;
+
+                const text = node.textContent;
+                // Match "Title" or 'Title' patterns
+                const matches = text.match(/[""]([^""]+)[""]|['']([^'']+)['']|"([^"]+)"|'([^']+)'/g);
+                if (matches) {
+                    nodesToProcess.push({ node, matches });
+                }
+            }
+
+            for (const { node, matches } of nodesToProcess) {
+                let html = escapeHtml(node.textContent);
+
+                for (const match of matches) {
+                    const title = match.replace(/["'""'']/g, '').trim();
+                    if (title.length < 4) continue;
+
+                    const book = findBookInLibrary(title, books);
+                    const escapedMatch = escapeHtml(match);
+
+                    if (book) {
+                        html = html.replace(
+                            escapedMatch,
+                            `<span class="book-ref in-library" data-book-id="${book.id}" data-book-title="${escapeHtml(book.title)}" title="View in library" onclick="viewBook(${book.id})">${escapedMatch}</span>`
+                        );
+                    } else if (/[A-Z]/.test(title[0])) {
+                        html = html.replace(
+                            escapedMatch,
+                            `<span class="book-ref not-in-library" data-book-title="${escapeHtml(title)}" title="Add to library" onclick="promptAddBookFromReference('${escapeHtml(title).replace(/'/g, "\\'")}', this)">${escapedMatch}</span>`
+                        );
+                    }
+                }
+
+                if (html !== escapeHtml(node.textContent)) {
+                    const span = document.createElement('span');
+                    span.innerHTML = html;
+                    node.parentNode.replaceChild(span, node);
+                }
+            }
+        }
+
+        // Extract author from surrounding context
+        function extractAuthorFromContext(element, title) {
+            // Get the parent element's text content
+            const parent = element.closest('li, p, div');
+            if (!parent) return null;
+
+            const text = parent.textContent;
+
+            // Common patterns: "Title" by Author, "Title" - Author, Title (Author)
+            const patterns = [
+                // "Title" by Author Name - most common
+                new RegExp(`[""]?${escapeRegex(title)}[""]?\\s+by\\s+([A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+)+)`, 'i'),
+                // "Title" - Author Name
+                new RegExp(`[""]?${escapeRegex(title)}[""]?\\s*[-–—]\\s*([A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+)+)`, 'i'),
+                // Title by Author (without quotes)
+                new RegExp(`${escapeRegex(title)}\\s+by\\s+([A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+)+)`, 'i'),
+                // Author - "Title" pattern
+                new RegExp(`([A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+)+)\\s*[-–—]\\s*[""]?${escapeRegex(title)}[""]?`, 'i'),
+            ];
+
+            for (const pattern of patterns) {
+                const match = text.match(pattern);
+                if (match && match[1]) {
+                    // Clean up the author name
+                    let author = match[1].trim();
+                    // Remove trailing punctuation or common words
+                    author = author.replace(/[,.\-–—]$/, '').trim();
+                    // Skip if it looks like a description word rather than name
+                    if (!/^(explores|discusses|covers|about|the|a|an)$/i.test(author)) {
+                        return author;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Flag to prevent double submission
+        let isAddingBook = false;
+
+        // Add a book from a reference, extracting author from context if possible
+        async function promptAddBookFromReference(title, element) {
+            // Prevent double submission
+            if (isAddingBook) return;
+
+            // Try to extract author from context first
+            let author = element ? extractAuthorFromContext(element, title) : null;
+
+            // Confirm with user before adding
+            const confirmMsg = author
+                ? `Add "${title}" by ${author} to your library?`
+                : `Add "${title}" to your library?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            // If we couldn't find the author, ask the user
+            if (!author) {
+                author = prompt(`Enter the author name for "${title}":`);
+                if (!author) return;
+            }
+
+            isAddingBook = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/books`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        author: author,
+                        status: 'want-to-read'
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    invalidateLibraryCache();
+                    loadBooks();
+                    loadStats();
+                    // View the new book
+                    if (data.id) {
+                        viewBook(data.id);
+                    }
+                } else {
+                    alert(`Error: ${data.error || 'Could not add book'}`);
+                }
+            } catch (error) {
+                console.error('Error adding book:', error);
+                alert('Error adding book. Please try again.');
+            } finally {
+                isAddingBook = false;
+            }
         }
 
         async function loadStats() {
@@ -1498,6 +1800,8 @@
                         const body = document.createElement('div');
                         body.className = 'qa-body';
                         body.innerHTML = renderMarkdown(qa.answer);
+                        // Process book references (async, but we don't need to wait)
+                        processBookReferences(body);
 
                         const actions = document.createElement('div');
                         actions.className = 'qa-actions';
@@ -1658,6 +1962,8 @@
                             </div>
                         </div>
                     `;
+                    // Process book references in saved Q&A
+                    section.querySelectorAll('.qa-body').forEach(body => processBookReferences(body));
                 } else {
                     section.innerHTML = '';
                 }
@@ -1841,7 +2147,7 @@
                 }
 
                 lastAnswer = data.message;
-                const messageContainer = addChatMessage('assistant', data.message);
+                const messageContainer = await addChatMessage('assistant', data.message);
 
                 // Auto-save Q&A for both book and library context
                 if (lastQuestion && lastAnswer) {
@@ -1918,7 +2224,7 @@
             sendMessage(message);
         }
 
-        function addChatMessage(role, content) {
+        async function addChatMessage(role, content) {
             const messagesDiv = document.getElementById('chatMessages');
             const containerDiv = document.createElement('div');
             containerDiv.className = 'message-container';
@@ -1928,6 +2234,8 @@
 
             if (role === 'assistant') {
                 messageDiv.innerHTML = renderMarkdown(content);
+                // Process book references to make them clickable
+                await processBookReferences(messageDiv);
             } else {
                 messageDiv.textContent = content;
             }
@@ -2051,6 +2359,7 @@
         loadStats();
         loadBooks();
         loadFilters();
+        loadBookHistory();
         initializeLibraryContext();
     </script>
 </body>

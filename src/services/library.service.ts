@@ -9,7 +9,21 @@ export class LibraryService {
     this.db = dbManager.getDatabase();
   }
 
+  // Check if a book with the same title and author already exists
+  findDuplicateBook(title: string, author: string): Book | undefined {
+    const stmt = this.db.prepare(
+      'SELECT * FROM books WHERE LOWER(title) = LOWER(?) AND LOWER(author) = LOWER(?)'
+    );
+    return stmt.get(title.trim(), author.trim()) as Book | undefined;
+  }
+
   addBook(book: Omit<Book, 'id'>): number {
+    // Check for duplicate
+    const existing = this.findDuplicateBook(book.title, book.author);
+    if (existing) {
+      throw new Error(`Book "${book.title}" by ${book.author} already exists in your library`);
+    }
+
     const stmt = this.db.prepare(`
       INSERT INTO books (
         title, author, isbn, publisher, publishedYear, genre, pages,
