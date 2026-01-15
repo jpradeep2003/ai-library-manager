@@ -907,12 +907,354 @@
             font-size: 13px;
             margin-bottom: 10px;
         }
+
+        /* Genre Tree Dropdown */
+        .genre-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .genre-dropdown-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            min-width: 120px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .genre-dropdown-btn:hover {
+            border-color: #667eea;
+        }
+
+        .genre-dropdown-btn .arrow {
+            margin-left: 8px;
+            font-size: 10px;
+        }
+
+        .genre-tree {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .genre-tree.open {
+            display: block;
+        }
+
+        .genre-tree-item {
+            cursor: pointer;
+        }
+
+        .genre-tree-header {
+            padding: 8px 12px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .genre-tree-header:hover {
+            background: #e9ecef;
+        }
+
+        .genre-tree-header .expand-arrow {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .genre-tree-item.expanded .genre-tree-header .expand-arrow {
+            transform: rotate(90deg);
+        }
+
+        .genre-tree-subgenres {
+            display: none;
+            background: white;
+        }
+
+        .genre-tree-item.expanded .genre-tree-subgenres {
+            display: block;
+        }
+
+        .genre-tree-subgenre {
+            padding: 6px 12px 6px 24px;
+            font-size: 12px;
+            color: #555;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .genre-tree-subgenre:hover {
+            background: #f0f0ff;
+            color: #667eea;
+        }
+
+        .genre-tree-all {
+            padding: 8px 12px;
+            font-weight: 500;
+            border-bottom: 1px solid #ddd;
+            background: white;
+        }
+
+        .genre-tree-all:hover {
+            background: #f0f0ff;
+            color: #667eea;
+        }
+
+        /* Settings Panel */
+        .settings-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            opacity: 0.8;
+        }
+
+        .settings-btn:hover {
+            opacity: 1;
+        }
+
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .settings-modal.active {
+            display: flex;
+        }
+
+        .settings-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .settings-header h2 {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .settings-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .taxonomy-editor {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .taxonomy-genre {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .taxonomy-genre:last-child {
+            border-bottom: none;
+        }
+
+        .taxonomy-genre-header {
+            padding: 10px 12px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .taxonomy-genre-header:hover {
+            background: #e9ecef;
+        }
+
+        .taxonomy-genre-name {
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .taxonomy-genre-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .taxonomy-genre-actions button {
+            padding: 2px 8px;
+            font-size: 11px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .taxonomy-genre-actions button.delete-btn {
+            background: #dc3545;
+        }
+
+        .taxonomy-subgenres {
+            padding: 8px 12px;
+            display: none;
+            flex-wrap: wrap;
+            gap: 6px;
+            background: white;
+        }
+
+        .taxonomy-genre.expanded .taxonomy-subgenres {
+            display: flex;
+        }
+
+        .taxonomy-subgenre-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .taxonomy-subgenre-tag .remove-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .taxonomy-subgenre-tag .remove-btn:hover {
+            color: #dc3545;
+        }
+
+        .taxonomy-add-subgenre {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+            padding: 0 12px 12px;
+        }
+
+        .taxonomy-add-subgenre input {
+            flex: 1;
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .taxonomy-footer {
+            padding: 12px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+        }
+
+        .taxonomy-footer button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .taxonomy-footer .add-genre-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+        }
+
+        .taxonomy-footer .reset-btn {
+            background: white;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .settings-future {
+            color: #888;
+            font-size: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .settings-future h4 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        .settings-future ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .settings-future li {
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="top-bar">
         <h1>AI Library Manager</h1>
         <div class="stats-inline" id="stats"></div>
+        <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
     </div>
 
     <div class="app-container" id="appContainer">
@@ -937,9 +1279,16 @@
                         <option value="completed">Completed</option>
                         <option value="on-hold">On Hold</option>
                     </select>
-                    <select id="filterGenre" onchange="applyFilters()">
-                        <option value="">All Genres</option>
-                    </select>
+                    <div class="genre-dropdown-container">
+                        <button class="genre-dropdown-btn" onclick="toggleGenreDropdown(event)">
+                            <span id="genreDropdownLabel">All Genres</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="genre-tree" id="genreTree">
+                            <div class="genre-tree-all" onclick="selectGenre(null, null, 'All Genres')">All Genres</div>
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
                     <select id="sortBy" onchange="applyFilters()">
                         <option value="dateAdded">Date</option>
                         <option value="title">Title</option>
@@ -1000,6 +1349,41 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="settings-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-section">
+                    <h3>Genre Taxonomy</h3>
+                    <p style="font-size: 12px; color: #666; margin-bottom: 12px;">
+                        Organize your library with genres and sub-genres (tags). Click a genre to expand/edit.
+                    </p>
+                    <div class="taxonomy-editor" id="taxonomyEditor">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="taxonomy-footer">
+                        <button class="add-genre-btn" onclick="addNewGenre()">+ Add Genre</button>
+                        <button class="reset-btn" onclick="regenerateTaxonomy()">Reset to Auto-Generated</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-future">
+                        <h4>Coming Soon</h4>
+                        <ul>
+                            <li>Chat History</li>
+                            <li>Books History</li>
+                            <li>Data Export</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Book Modal -->
     <div class="modal" id="addBookModal">
         <div class="modal-content">
@@ -1041,6 +1425,11 @@
         let bookHistory = []; // Array of book IDs
         let historyIndex = -1; // Current position in history
         let isNavigatingHistory = false; // Flag to prevent adding to history during navigation
+
+        // Genre taxonomy state
+        let currentTaxonomy = [];
+        let selectedGenreTags = []; // Tags to filter by
+        let selectedGenreLabel = 'All Genres';
 
         // Load history from localStorage
         function loadBookHistory() {
@@ -2299,37 +2688,324 @@
         }
 
         async function loadFilters() {
+            // Load taxonomy for genre dropdown
+            await loadTaxonomy();
+        }
+
+        // ==================== Taxonomy Functions ====================
+
+        async function loadTaxonomy() {
             try {
-                const [genresRes] = await Promise.all([
-                    fetch(`${API_BASE}/genres`)
-                ]);
-                const genresData = await genresRes.json();
-                const genreSelect = document.getElementById('filterGenre');
-                genreSelect.innerHTML = '<option value="">All Genres</option>' +
-                    genresData.genres.map(g => `<option value="${g}">${g}</option>`).join('');
+                const response = await fetch(`${API_BASE}/taxonomy`);
+                const data = await response.json();
+                currentTaxonomy = data.taxonomy || [];
+                renderGenreDropdown();
             } catch (error) {
-                console.error('Error loading filters:', error);
+                console.error('Error loading taxonomy:', error);
             }
+        }
+
+        function renderGenreDropdown() {
+            const tree = document.getElementById('genreTree');
+            const allOption = '<div class="genre-tree-all" onclick="selectGenre(null, null, \'All Genres\')">All Genres</div>';
+
+            const genresHtml = currentTaxonomy.map(genre => `
+                <div class="genre-tree-item" data-genre-id="${genre.id}">
+                    <div class="genre-tree-header" onclick="toggleGenreExpand(this.parentElement, event)">
+                        <span>${escapeHtml(genre.genreName)}</span>
+                        <span class="expand-arrow">▶</span>
+                    </div>
+                    <div class="genre-tree-subgenres">
+                        <div class="genre-tree-subgenre" onclick="selectGenre(${JSON.stringify(genre.subGenres).replace(/"/g, '&quot;')}, null, '${escapeHtml(genre.genreName)}')">
+                            All ${escapeHtml(genre.genreName)}
+                        </div>
+                        ${genre.subGenres.map(tag => `
+                            <div class="genre-tree-subgenre" onclick="selectGenre(['${escapeHtml(tag)}'], '${escapeHtml(tag)}', '${escapeHtml(tag)}')">${escapeHtml(tag)}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            tree.innerHTML = allOption + genresHtml;
+        }
+
+        function toggleGenreDropdown(event) {
+            event.stopPropagation();
+            const tree = document.getElementById('genreTree');
+            tree.classList.toggle('open');
+
+            // Close dropdown when clicking outside
+            if (tree.classList.contains('open')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeGenreDropdownOnClickOutside);
+                }, 0);
+            }
+        }
+
+        function closeGenreDropdownOnClickOutside(event) {
+            const tree = document.getElementById('genreTree');
+            const container = document.querySelector('.genre-dropdown-container');
+            if (!container.contains(event.target)) {
+                tree.classList.remove('open');
+                document.removeEventListener('click', closeGenreDropdownOnClickOutside);
+            }
+        }
+
+        function toggleGenreExpand(item, event) {
+            event.stopPropagation();
+            item.classList.toggle('expanded');
+        }
+
+        function selectGenre(tags, singleTag, label) {
+            selectedGenreTags = tags || [];
+            selectedGenreLabel = label;
+            document.getElementById('genreDropdownLabel').textContent = label;
+            document.getElementById('genreTree').classList.remove('open');
+            document.removeEventListener('click', closeGenreDropdownOnClickOutside);
+            applyFilters();
         }
 
         async function applyFilters() {
             const status = document.getElementById('filterStatus').value;
-            const genre = document.getElementById('filterGenre').value;
             const sortBy = document.getElementById('sortBy').value;
             const sortOrder = document.getElementById('sortOrder').value;
 
-            const params = new URLSearchParams();
-            if (status) params.append('status', status);
-            if (genre) params.append('genre', genre);
-            if (sortBy) params.append('sortBy', sortBy);
-            if (sortOrder) params.append('sortOrder', sortOrder);
-
             try {
-                const response = await fetch(`${API_BASE}/books?${params.toString()}`);
-                const data = await response.json();
-                displayBooks(data.books);
+                let books;
+
+                // If filtering by tags, use the tags endpoint
+                if (selectedGenreTags.length > 0) {
+                    const tagsParam = selectedGenreTags.join(',');
+                    const response = await fetch(`${API_BASE}/books/by-tags?tags=${encodeURIComponent(tagsParam)}`);
+                    const data = await response.json();
+                    books = data.books;
+
+                    // Apply status filter client-side
+                    if (status) {
+                        books = books.filter(b => b.status === status);
+                    }
+
+                    // Apply sorting client-side
+                    books.sort((a, b) => {
+                        let aVal = a[sortBy] || '';
+                        let bVal = b[sortBy] || '';
+                        if (sortBy === 'dateAdded') {
+                            aVal = new Date(aVal).getTime();
+                            bVal = new Date(bVal).getTime();
+                        }
+                        const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                        return sortOrder === 'desc' ? -cmp : cmp;
+                    });
+                } else {
+                    // No tag filter, use standard endpoint
+                    const params = new URLSearchParams();
+                    if (status) params.append('status', status);
+                    if (sortBy) params.append('sortBy', sortBy);
+                    if (sortOrder) params.append('sortOrder', sortOrder);
+
+                    const response = await fetch(`${API_BASE}/books?${params.toString()}`);
+                    const data = await response.json();
+                    books = data.books;
+                }
+
+                displayBooks(books);
             } catch (error) {
                 console.error('Error applying filters:', error);
+            }
+        }
+
+        // ==================== Settings Functions ====================
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            renderTaxonomyEditor();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function renderTaxonomyEditor() {
+            const editor = document.getElementById('taxonomyEditor');
+
+            if (currentTaxonomy.length === 0) {
+                editor.innerHTML = '<p style="padding: 12px; color: #888; font-size: 12px;">No genres defined. Click "Reset to Auto-Generated" to create taxonomy from your book tags.</p>';
+                return;
+            }
+
+            editor.innerHTML = currentTaxonomy.map(genre => `
+                <div class="taxonomy-genre" data-genre-id="${genre.id}">
+                    <div class="taxonomy-genre-header" onclick="toggleTaxonomyGenre(this.parentElement)">
+                        <span class="taxonomy-genre-name">${escapeHtml(genre.genreName)}</span>
+                        <div class="taxonomy-genre-actions">
+                            <button onclick="event.stopPropagation(); editGenreName(${genre.id})">Rename</button>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteGenre(${genre.id})">Delete</button>
+                        </div>
+                    </div>
+                    <div class="taxonomy-subgenres">
+                        ${genre.subGenres.map(tag => `
+                            <span class="taxonomy-subgenre-tag">
+                                ${escapeHtml(tag)}
+                                <button class="remove-btn" onclick="removeSubgenre(${genre.id}, '${escapeHtml(tag)}')">&times;</button>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div class="taxonomy-add-subgenre" style="display: none;">
+                        <input type="text" placeholder="Add tag..." onkeypress="if(event.key==='Enter') addSubgenreFromInput(${genre.id}, this)">
+                        <button class="small" onclick="addSubgenreFromInput(${genre.id}, this.previousElementSibling)">Add</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleTaxonomyGenre(genreEl) {
+            const wasExpanded = genreEl.classList.contains('expanded');
+            // Close all
+            document.querySelectorAll('.taxonomy-genre.expanded').forEach(el => {
+                el.classList.remove('expanded');
+                el.querySelector('.taxonomy-add-subgenre').style.display = 'none';
+            });
+            // Toggle this one
+            if (!wasExpanded) {
+                genreEl.classList.add('expanded');
+                genreEl.querySelector('.taxonomy-add-subgenre').style.display = 'flex';
+            }
+        }
+
+        async function editGenreName(genreId) {
+            const genre = currentTaxonomy.find(g => g.id === genreId);
+            if (!genre) return;
+
+            const newName = prompt('Enter new genre name:', genre.genreName);
+            if (!newName || newName === genre.genreName) return;
+
+            try {
+                await fetch(`${API_BASE}/taxonomy/genre/${genreId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ genreName: newName })
+                });
+                await loadTaxonomy();
+                renderTaxonomyEditor();
+            } catch (error) {
+                console.error('Error renaming genre:', error);
+                alert('Error renaming genre');
+            }
+        }
+
+        async function deleteGenre(genreId) {
+            if (!confirm('Delete this genre?')) return;
+
+            try {
+                await fetch(`${API_BASE}/taxonomy/genre/${genreId}`, { method: 'DELETE' });
+                await loadTaxonomy();
+                renderTaxonomyEditor();
+            } catch (error) {
+                console.error('Error deleting genre:', error);
+                alert('Error deleting genre');
+            }
+        }
+
+        async function removeSubgenre(genreId, tag) {
+            const genre = currentTaxonomy.find(g => g.id === genreId);
+            if (!genre) return;
+
+            const newSubgenres = genre.subGenres.filter(t => t !== tag);
+
+            try {
+                await fetch(`${API_BASE}/taxonomy/genre/${genreId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subGenres: newSubgenres })
+                });
+                await loadTaxonomy();
+                renderTaxonomyEditor();
+            } catch (error) {
+                console.error('Error removing subgenre:', error);
+            }
+        }
+
+        async function addSubgenreFromInput(genreId, input) {
+            const tag = input.value.trim().toLowerCase();
+            if (!tag) return;
+
+            const genre = currentTaxonomy.find(g => g.id === genreId);
+            if (!genre) return;
+
+            if (genre.subGenres.includes(tag)) {
+                alert('This tag already exists in this genre');
+                return;
+            }
+
+            if (genre.subGenres.length >= 6) {
+                alert('Maximum 6 sub-genres per genre');
+                return;
+            }
+
+            const newSubgenres = [...genre.subGenres, tag];
+
+            try {
+                await fetch(`${API_BASE}/taxonomy/genre/${genreId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subGenres: newSubgenres })
+                });
+                input.value = '';
+                await loadTaxonomy();
+                renderTaxonomyEditor();
+                // Re-expand the genre
+                const genreEl = document.querySelector(`.taxonomy-genre[data-genre-id="${genreId}"]`);
+                if (genreEl) {
+                    genreEl.classList.add('expanded');
+                    genreEl.querySelector('.taxonomy-add-subgenre').style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Error adding subgenre:', error);
+            }
+        }
+
+        async function addNewGenre() {
+            if (currentTaxonomy.length >= 6) {
+                alert('Maximum 6 genres allowed');
+                return;
+            }
+
+            const name = prompt('Enter genre name:');
+            if (!name) return;
+
+            try {
+                await fetch(`${API_BASE}/taxonomy/genre`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ genreName: name, subGenres: [] })
+                });
+                await loadTaxonomy();
+                renderTaxonomyEditor();
+            } catch (error) {
+                console.error('Error adding genre:', error);
+                alert('Error adding genre');
+            }
+        }
+
+        async function regenerateTaxonomy() {
+            if (!confirm('This will replace your current taxonomy with auto-generated genres based on your book tags. Continue?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/taxonomy/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ minFrequency: 1 })
+                });
+                const data = await response.json();
+                currentTaxonomy = data.taxonomy || [];
+                renderTaxonomyEditor();
+                renderGenreDropdown();
+                alert('Taxonomy regenerated successfully!');
+            } catch (error) {
+                console.error('Error regenerating taxonomy:', error);
+                alert('Error regenerating taxonomy');
             }
         }
 

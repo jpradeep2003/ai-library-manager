@@ -53,3 +53,12 @@ export interface SavedQA {
   hidden?: boolean;
   createdAt: string;
 }
+
+export interface GenreTaxonomy {
+  id?: number;
+  genreName: string;
+  subGenres: string[];  // Array of tag names
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}

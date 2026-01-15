@@ -1,5 +1,5 @@
 import { DatabaseManager } from '../database/schema.js';
-import { Book, Note, SavedQA } from '../types/index.js';
+import { Book, Note, SavedQA, GenreTaxonomy } from '../types/index.js';
 import type Database from 'better-sqlite3';
 
 export class LibraryService {
@@ -290,5 +290,222 @@ export class LibraryService {
     const stmt = this.db.prepare('DELETE FROM saved_qa WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
+  }
+
+  // ==================== Genre Taxonomy Methods ====================
+
+  // Predefined keyword mappings for genre classification
+  private genreKeywordMap: Record<string, string[]> = {
+    'AI & Technology': ['artificial intelligence', 'ai', 'neural networks', 'machine learning', 'ai safety', 'technological singularity', 'innovation', 'tech'],
+    'Science & Biology': ['evolution', 'genetics', 'biology', 'natural selection', 'human evolution', 'chromosomes', 'science', 'scientific'],
+    'Philosophy & Ideas': ['philosophy', 'futurism', 'existential risk', 'transhumanism', 'consciousness', 'cognitive science', 'ideas'],
+    'Computing & Math': ['algorithms', 'computer science', 'problem solving', 'mathematics', 'puzzles', 'programming', 'coding'],
+    'Health & Medicine': ['aging', 'longevity', 'death', 'lifespan', 'health', 'medicine', 'biology', 'medical'],
+    'History & Culture': ['history', 'biography', 'silicon valley', 'tech history', 'science writing', 'popular science', 'culture']
+  };
+
+  // Get all taxonomy entries
+  getTaxonomy(): GenreTaxonomy[] {
+    const stmt = this.db.prepare('SELECT * FROM genre_taxonomy ORDER BY sort_order ASC');
+    const results = stmt.all() as any[];
+    return results.map(r => ({
+      id: r.id,
+      genreName: r.genre_name,
+      subGenres: JSON.parse(r.sub_genres),
+      sortOrder: r.sort_order,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    }));
+  }
+
+  // Save entire taxonomy (replaces existing)
+  saveTaxonomy(taxonomy: GenreTaxonomy[]): void {
+    const deleteStmt = this.db.prepare('DELETE FROM genre_taxonomy');
+    const insertStmt = this.db.prepare(`
+      INSERT INTO genre_taxonomy (genre_name, sub_genres, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    const transaction = this.db.transaction(() => {
+      deleteStmt.run();
+      const now = new Date().toISOString();
+      taxonomy.forEach((genre, index) => {
+        insertStmt.run(
+          genre.genreName,
+          JSON.stringify(genre.subGenres),
+          index,
+          genre.createdAt || now,
+          now
+        );
+      });
+    });
+
+    transaction();
+  }
+
+  // Add a single genre
+  addGenre(genre: Omit<GenreTaxonomy, 'id'>): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO genre_taxonomy (genre_name, sub_genres, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      genre.genreName,
+      JSON.stringify(genre.subGenres),
+      genre.sortOrder,
+      genre.createdAt,
+      genre.updatedAt || null
+    );
+    return result.lastInsertRowid as number;
+  }
+
+  // Update a genre
+  updateGenre(id: number, updates: Partial<GenreTaxonomy>): boolean {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.genreName !== undefined) {
+      fields.push('genre_name = ?');
+      values.push(updates.genreName);
+    }
+    if (updates.subGenres !== undefined) {
+      fields.push('sub_genres = ?');
+      values.push(JSON.stringify(updates.subGenres));
+    }
+    if (updates.sortOrder !== undefined) {
+      fields.push('sort_order = ?');
+      values.push(updates.sortOrder);
+    }
+    fields.push('updated_at = ?');
+    values.push(new Date().toISOString());
+
+    if (fields.length === 1) return false; // Only updated_at
+
+    values.push(id);
+    const stmt = this.db.prepare(`UPDATE genre_taxonomy SET ${fields.join(', ')} WHERE id = ?`);
+    const result = stmt.run(...values);
+    return result.changes > 0;
+  }
+
+  // Delete a genre
+  deleteGenre(id: number): boolean {
+    const stmt = this.db.prepare('DELETE FROM genre_taxonomy WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
+  }
+
+  // Get all tags with their frequencies
+  getTagFrequencies(): Map<string, number> {
+    const stmt = this.db.prepare('SELECT tags FROM books WHERE tags IS NOT NULL');
+    const results = stmt.all() as { tags: string }[];
+    const frequencies = new Map<string, number>();
+
+    results.forEach(r => {
+      if (r.tags) {
+        r.tags.split(',').forEach(tag => {
+          const trimmed = tag.trim().toLowerCase();
+          if (trimmed) {
+            frequencies.set(trimmed, (frequencies.get(trimmed) || 0) + 1);
+          }
+        });
+      }
+    });
+
+    return frequencies;
+  }
+
+  // Auto-generate taxonomy from tags
+  generateTaxonomy(minFrequency: number = 1): GenreTaxonomy[] {
+    const tagFrequencies = this.getTagFrequencies();
+    const genreMap = new Map<string, Set<string>>();
+
+    // Initialize genre buckets
+    Object.keys(this.genreKeywordMap).forEach(genre => {
+      genreMap.set(genre, new Set());
+    });
+
+    // Classify tags into genres
+    const unclassifiedTags: string[] = [];
+
+    tagFrequencies.forEach((freq, tag) => {
+      if (freq < minFrequency) return;
+
+      let classified = false;
+      for (const [genre, keywords] of Object.entries(this.genreKeywordMap)) {
+        // Check if tag matches any keyword (partial match)
+        if (keywords.some(keyword => tag.includes(keyword) || keyword.includes(tag))) {
+          genreMap.get(genre)?.add(tag);
+          classified = true;
+          break;
+        }
+      }
+
+      if (!classified) {
+        unclassifiedTags.push(tag);
+      }
+    });
+
+    // Build taxonomy array
+    const taxonomy: GenreTaxonomy[] = [];
+    const now = new Date().toISOString();
+    let sortOrder = 0;
+
+    genreMap.forEach((tags, genreName) => {
+      if (tags.size > 0) {
+        // Sort tags by frequency, take top 6
+        const sortedTags = Array.from(tags)
+          .sort((a, b) => (tagFrequencies.get(b) || 0) - (tagFrequencies.get(a) || 0))
+          .slice(0, 6);
+
+        taxonomy.push({
+          genreName,
+          subGenres: sortedTags,
+          sortOrder: sortOrder++,
+          createdAt: now
+        });
+      }
+    });
+
+    // Limit to 6 genres, sorted by total tag frequency
+    return taxonomy
+      .sort((a, b) => {
+        const aTotal = a.subGenres.reduce((sum, tag) => sum + (tagFrequencies.get(tag) || 0), 0);
+        const bTotal = b.subGenres.reduce((sum, tag) => sum + (tagFrequencies.get(tag) || 0), 0);
+        return bTotal - aTotal;
+      })
+      .slice(0, 6)
+      .map((g, i) => ({ ...g, sortOrder: i }));
+  }
+
+  // Get or generate taxonomy
+  getOrGenerateTaxonomy(): GenreTaxonomy[] {
+    const existing = this.getTaxonomy();
+    if (existing.length > 0) {
+      return existing;
+    }
+
+    // Auto-generate and save
+    const generated = this.generateTaxonomy();
+    if (generated.length > 0) {
+      this.saveTaxonomy(generated);
+    }
+    return generated;
+  }
+
+  // Get books by tag (for filtering)
+  getBooksByTag(tag: string): Book[] {
+    const stmt = this.db.prepare('SELECT * FROM books WHERE LOWER(tags) LIKE ?');
+    return stmt.all(`%${tag.toLowerCase()}%`) as Book[];
+  }
+
+  // Get books by any of multiple tags (for genre filtering)
+  getBooksByTags(tags: string[]): Book[] {
+    if (tags.length === 0) return [];
+
+    const conditions = tags.map(() => 'LOWER(tags) LIKE ?').join(' OR ');
+    const params = tags.map(tag => `%${tag.toLowerCase()}%`);
+
+    const stmt = this.db.prepare(`SELECT * FROM books WHERE ${conditions}`);
+    return stmt.all(...params) as Book[];
   }
 }

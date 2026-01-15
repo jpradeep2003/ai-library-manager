@@ -61,6 +61,15 @@ export class DatabaseManager {
         FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS genre_taxonomy (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        genre_name TEXT NOT NULL,
+        sub_genres TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT
+      );
+
       CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
       CREATE INDEX IF NOT EXISTS idx_books_author ON books(author);
       CREATE INDEX IF NOT EXISTS idx_books_status ON books(status);

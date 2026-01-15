@@ -63,6 +63,22 @@ app.get('/api/tags', (req, res) => {
   }
 });
 
+// Get books filtered by tags (for genre/sub-genre filtering)
+// IMPORTANT: This must come BEFORE /api/books/:id to avoid route conflict
+app.get('/api/books/by-tags', (req, res) => {
+  try {
+    const tagsParam = req.query.tags as string;
+    if (!tagsParam) {
+      return res.status(400).json({ error: 'Tags parameter is required' });
+    }
+    const tags = tagsParam.split(',').map(t => t.trim());
+    const books = libraryService.getBooksByTags(tags);
+    res.json({ books, count: books.length });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/books/:id', (req, res) => {
   try {
     const book = libraryService.getBookById(parseInt(req.params.id));
@@ -330,6 +346,90 @@ app.post('/api/ai/clear', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ==================== Taxonomy Endpoints ====================
+
+// Get taxonomy (auto-generate if not exists)
+app.get('/api/taxonomy', (req, res) => {
+  try {
+    const taxonomy = libraryService.getOrGenerateTaxonomy();
+    res.json({ taxonomy });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save entire taxonomy
+app.put('/api/taxonomy', (req, res) => {
+  try {
+    const { taxonomy } = req.body;
+    if (!Array.isArray(taxonomy)) {
+      return res.status(400).json({ error: 'Taxonomy must be an array' });
+    }
+    libraryService.saveTaxonomy(taxonomy);
+    res.json({ message: 'Taxonomy saved successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Regenerate taxonomy from tags
+app.post('/api/taxonomy/generate', (req, res) => {
+  try {
+    const { minFrequency = 1 } = req.body;
+    const taxonomy = libraryService.generateTaxonomy(minFrequency);
+    libraryService.saveTaxonomy(taxonomy);
+    res.json({ taxonomy, message: 'Taxonomy regenerated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add a new genre
+app.post('/api/taxonomy/genre', (req, res) => {
+  try {
+    const { genreName, subGenres = [] } = req.body;
+    if (!genreName) {
+      return res.status(400).json({ error: 'Genre name is required' });
+    }
+    const existing = libraryService.getTaxonomy();
+    const id = libraryService.addGenre({
+      genreName,
+      subGenres,
+      sortOrder: existing.length,
+      createdAt: new Date().toISOString()
+    });
+    res.status(201).json({ id, message: 'Genre added successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update a genre
+app.put('/api/taxonomy/genre/:id', (req, res) => {
+  try {
+    const success = libraryService.updateGenre(parseInt(req.params.id), req.body);
+    if (!success) {
+      return res.status(404).json({ error: 'Genre not found' });
+    }
+    res.json({ message: 'Genre updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a genre
+app.delete('/api/taxonomy/genre/:id', (req, res) => {
+  try {
+    const success = libraryService.deleteGenre(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Genre not found' });
+    }
+    res.json({ message: 'Genre deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.listen(PORT, () => {
