@@ -1,4 +1,5 @@
 import { test as base, expect, Page } from '@playwright/test';
+import { setupAIMocking, AI_RESPONSE_TIMEOUT, logAITestMode } from './helpers/ai-mock';
 
 // Test data
 export const testBooks = {
@@ -46,17 +47,20 @@ export class LibraryPage {
 
   async addBook(book: { title: string; author: string; status?: string; tags?: string }) {
     await this.openAddBookModal();
-    await this.page.fill('input[placeholder="Title"]', book.title);
-    await this.page.fill('input[placeholder="Author"]', book.author);
+    // Note: HTML placeholders include asterisks for required fields
+    await this.page.fill('#title', book.title);
+    await this.page.fill('#author', book.author);
     if (book.status) {
-      await this.page.selectOption('#addBookStatus', book.status);
+      await this.page.selectOption('#status', book.status);
     }
     if (book.tags) {
-      await this.page.fill('input[placeholder="Tags (comma-separated)"]', book.tags);
+      await this.page.fill('#tags', book.tags);
     }
     await this.page.click('#addBookModal button:has-text("Add Book")');
-    // Wait for modal to close or success message
-    await this.page.waitForTimeout(1000);
+    // Wait for modal to close (800ms delay in app + buffer)
+    await this.page.waitForSelector('.modal.active', { state: 'hidden', timeout: 5000 }).catch(() => {});
+    // Wait for book to appear in grid
+    await this.page.waitForSelector(`.book-card:has-text("${book.title}")`, { timeout: 5000 }).catch(() => {});
   }
 
   async closeAddBookModal() {
@@ -71,7 +75,10 @@ export class LibraryPage {
 
   async selectBook(title: string) {
     await this.page.click(`.book-card:has-text("${title}")`);
-    await this.page.waitForSelector('.book-panel.visible');
+    // Wait for app container to have book-selected state (UI uses state classes, not .visible)
+    await this.page.waitForSelector('.app-container.book-selected');
+    // Wait for book details to be rendered
+    await this.page.waitForSelector('.book-detail-info h2');
   }
 
   async deleteCurrentBook() {
@@ -83,15 +90,17 @@ export class LibraryPage {
 
   // Search & Filtering
   async searchBooks(query: string) {
-    await this.page.fill('input[placeholder="Search books..."]', query);
+    await this.page.fill('#searchInput', query);
     await this.page.click('button:has-text("Go")');
-    await this.page.waitForTimeout(500);
+    // Wait for search to complete - give time for API call and re-render
+    await this.page.waitForTimeout(800);
   }
 
   async clearSearch() {
-    await this.page.fill('input[placeholder="Search books..."]', '');
+    await this.page.fill('#searchInput', '');
     await this.page.click('button:has-text("Go")');
-    await this.page.waitForTimeout(500);
+    // Wait for search to complete
+    await this.page.waitForTimeout(800);
   }
 
   async filterByStatus(status: string) {
@@ -127,8 +136,9 @@ export class LibraryPage {
     await this.page.fill('.chat-input input', message);
     await this.page.click('.chat-input button');
     // Wait for response (loading indicator to appear and disappear)
+    // Allow longer timeout for AI responses which can take 90+ seconds
     await this.page.waitForSelector('.message.loading', { state: 'visible', timeout: 5000 }).catch(() => {});
-    await this.page.waitForSelector('.message.loading', { state: 'hidden', timeout: 60000 }).catch(() => {});
+    await this.page.waitForSelector('.message.loading', { state: 'hidden', timeout: 120000 }).catch(() => {});
     await this.page.waitForTimeout(500);
   }
 
@@ -184,7 +194,9 @@ export class LibraryPage {
 
   async closeBookPanel() {
     await this.page.click('.book-panel .close-btn');
-    await this.page.waitForTimeout(300);
+    // Wait for book-selected state to be removed
+    await this.page.waitForSelector('.app-container.book-selected', { state: 'detached' }).catch(() => {});
+    await this.page.waitForTimeout(200);
   }
 
   async maximizeChat() {
@@ -237,12 +249,19 @@ export class LibraryPage {
   }
 }
 
-// Extended test fixture
-export const test = base.extend<{ libraryPage: LibraryPage }>({
+// Extended test fixture with AI mocking support
+export const test = base.extend<{ libraryPage: LibraryPage; page: Page }>({
   libraryPage: async ({ page }, use) => {
+    // Setup AI mocking before tests run
+    await setupAIMocking(page);
+    logAITestMode();
+
     const libraryPage = new LibraryPage(page);
     await use(libraryPage);
   },
 });
+
+// Export AI timeout for use in tests
+export { AI_RESPONSE_TIMEOUT };
 
 export { expect };

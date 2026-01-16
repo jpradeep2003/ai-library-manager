@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200">
+<g fill="#2b2f36">
+  <path d="M40 40 v120 h20 v-50 c0-15 50-15 50 0 v50 h20 v-120 h-20 v45 c0 35-50 35-50 0 v-45 z"/>
+  <text x="150" y="125" font-size="72" font-family="serif">hammock</text>
+</g>
+</svg>

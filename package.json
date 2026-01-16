@@ -11,9 +11,11 @@
     "web": "tsx src/web/server.ts",
     "migrate": "tsx src/migrate.ts",
     "test": "vitest",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
+    "test:e2e": "AI_TEST_MODE=mock playwright test",
+    "test:e2e:live": "AI_TEST_MODE=live playwright test",
+    "test:e2e:record": "AI_TEST_MODE=live RECORD_HAR=true playwright test --grep @ai",
+    "test:e2e:ui": "AI_TEST_MODE=mock playwright test --ui",
+    "test:e2e:headed": "AI_TEST_MODE=mock playwright test --headed",
     "test:e2e:report": "playwright show-report"
   },
   "keywords": [

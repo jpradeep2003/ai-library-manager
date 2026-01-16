@@ -115,6 +115,10 @@ app.post('/api/books', async (req, res) => {
     const id = libraryService.addBook(bookData);
     res.status(201).json({ id, message: 'Book added successfully' });
   } catch (error: any) {
+    // Return 400 for validation errors like duplicates
+    if (error.message.includes('already exists')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -146,8 +150,10 @@ app.delete('/api/books/:id', (req, res) => {
 app.get('/api/search', (req, res) => {
   try {
     const { q } = req.query;
-    if (!q) {
-      return res.status(400).json({ error: 'Query parameter "q" is required' });
+    // Handle empty query by returning all books
+    if (!q || q === '') {
+      const books = libraryService.getAllBooks({});
+      return res.json({ books, count: books.length });
     }
     const books = libraryService.searchBooks(q as string);
     res.json({ books, count: books.length });

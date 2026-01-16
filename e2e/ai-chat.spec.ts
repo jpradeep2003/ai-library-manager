@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { AI_TEST_TIMEOUT, AI_RESPONSE_TIMEOUT } from './helpers/ai-mock';
 
 test.describe('AI Chat', () => {
   test.beforeEach(async ({ libraryPage }) => {
@@ -50,11 +51,12 @@ test.describe('AI Chat', () => {
 
     test('should clear book context when clicking clear button', async ({ libraryPage }) => {
       await libraryPage.selectBook('Deep Learning');
-      await expect(libraryPage.page.locator('.book-context-banner')).toBeVisible();
+      await expect(libraryPage.page.locator('.book-context-banner')).toContainText('Deep Learning');
 
       await libraryPage.clearBookContext();
 
-      await expect(libraryPage.page.locator('.book-context-banner')).not.toBeVisible();
+      // After clearing, banner shows "Library" instead of the book title
+      await expect(libraryPage.page.locator('.book-context-banner')).toContainText('Library');
     });
 
     test('should update context when selecting different book', async ({ libraryPage }) => {
@@ -131,12 +133,13 @@ test.describe('AI Chat', () => {
     });
 
     test('should display suggestions after response', async ({ libraryPage }) => {
-      test.setTimeout(90000);
+      // Timeout adapts to mock (fast) or live (slow) mode
+      test.setTimeout(AI_TEST_TIMEOUT);
 
       await libraryPage.sendChatMessage('Tell me about my library');
 
       // Wait for response
-      await libraryPage.page.waitForSelector('.message.assistant', { timeout: 60000 });
+      await libraryPage.page.waitForSelector('.message.assistant', { timeout: AI_RESPONSE_TIMEOUT });
 
       // Suggestions should be updated
       const suggestions = libraryPage.page.locator('.suggestion-btn');
@@ -170,22 +173,24 @@ test.describe('AI Chat', () => {
     });
 
     test('should ask for recommendations', async ({ libraryPage }) => {
-      test.setTimeout(90000);
+      // Timeout adapts to mock (fast) or live (slow) mode
+      test.setTimeout(AI_TEST_TIMEOUT);
 
       await libraryPage.sendChatMessage('Recommend me a book');
 
-      await expect(libraryPage.page.locator('.message.assistant').first()).toBeVisible({ timeout: 60000 });
+      await expect(libraryPage.page.locator('.message.assistant').first()).toBeVisible({ timeout: AI_RESPONSE_TIMEOUT });
     });
   });
 
   test.describe('Book-Level Q&A', () => {
     test('should ask about specific book', async ({ libraryPage }) => {
-      test.setTimeout(90000);
+      // Timeout adapts to mock (fast) or live (slow) mode
+      test.setTimeout(AI_TEST_TIMEOUT);
 
       await libraryPage.selectBook('Deep Learning');
       await libraryPage.sendChatMessage('What is this book about?');
 
-      await expect(libraryPage.page.locator('.message.assistant').first()).toBeVisible({ timeout: 60000 });
+      await expect(libraryPage.page.locator('.message.assistant').first()).toBeVisible({ timeout: AI_RESPONSE_TIMEOUT });
     });
   });
 
@@ -218,12 +223,13 @@ test.describe('AI Chat', () => {
     });
 
     test('should render markdown in assistant messages', async ({ libraryPage }) => {
-      test.setTimeout(90000);
+      // Timeout adapts to mock (fast) or live (slow) mode
+      test.setTimeout(AI_TEST_TIMEOUT);
 
       await libraryPage.sendChatMessage('Give me a list of something');
 
       // Wait for response
-      await libraryPage.page.waitForSelector('.message.assistant', { timeout: 60000 });
+      await libraryPage.page.waitForSelector('.message.assistant', { timeout: AI_RESPONSE_TIMEOUT });
 
       // Response should be rendered (might contain markdown elements)
       const assistantMessage = libraryPage.page.locator('.message.assistant').first();

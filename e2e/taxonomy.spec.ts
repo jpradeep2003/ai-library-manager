@@ -119,12 +119,15 @@ test.describe('Genre Taxonomy', () => {
       await libraryPage.openGenreDropdown();
       const genreHeader = libraryPage.page.locator('.genre-tree-header').first();
       if (await genreHeader.isVisible()) {
-        await genreHeader.click();
-        await genreHeader.click();
+        await genreHeader.click(); // Expand
+        await libraryPage.page.waitForTimeout(200);
+        await genreHeader.click(); // Select
+        await libraryPage.page.waitForTimeout(300);
       }
 
-      // Then select All Genres
-      await libraryPage.selectAllGenres();
+      // Then select All Genres (click directly since dropdown may still be open)
+      await libraryPage.page.click('.genre-tree-all');
+      await libraryPage.page.waitForTimeout(300);
 
       await expect(libraryPage.page.locator('#genreDropdownLabel')).toContainText('All Genres');
     });

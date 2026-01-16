@@ -35,22 +35,32 @@ test.describe('Book Management', () => {
       expect(newCount).toBeGreaterThanOrEqual(initialCount);
     });
 
-    test('should require title field', async ({ libraryPage }) => {
+    test('should require title field', async ({ libraryPage, page }) => {
       await libraryPage.openAddBookModal();
-      await libraryPage.page.fill('input[placeholder="Author"]', 'Test Author');
-      await libraryPage.page.click('#addBookModal button:has-text("Add Book")');
+      await page.fill('#author', 'Test Author');
+
+      // Set up dialog handler for validation alert
+      page.once('dialog', dialog => dialog.accept());
+
+      await page.click('#addBookModal button:has-text("Add Book")');
+      await page.waitForTimeout(300);
 
       // Modal should still be visible (validation failed)
-      await expect(libraryPage.page.locator('.modal.active')).toBeVisible();
+      await expect(page.locator('.modal.active')).toBeVisible();
     });
 
-    test('should require author field', async ({ libraryPage }) => {
+    test('should require author field', async ({ libraryPage, page }) => {
       await libraryPage.openAddBookModal();
-      await libraryPage.page.fill('input[placeholder="Title"]', 'Test Title');
-      await libraryPage.page.click('#addBookModal button:has-text("Add Book")');
+      await page.fill('#title', 'Test Title');
+
+      // Set up dialog handler for validation alert
+      page.once('dialog', dialog => dialog.accept());
+
+      await page.click('#addBookModal button:has-text("Add Book")');
+      await page.waitForTimeout(300);
 
       // Modal should still be visible (validation failed)
-      await expect(libraryPage.page.locator('.modal.active')).toBeVisible();
+      await expect(page.locator('.modal.active')).toBeVisible();
     });
 
     test('should prevent duplicate books', async ({ libraryPage }) => {
@@ -90,8 +100,8 @@ test.describe('Book Management', () => {
       // Find and click the book
       await libraryPage.selectBook(uniqueTitle);
 
-      // Verify status in book panel
-      await expect(libraryPage.page.locator('.book-panel')).toContainText('Reading');
+      // Verify status in book panel (lowercase as displayed by app)
+      await expect(libraryPage.page.locator('.book-panel')).toContainText('reading');
     });
   });
 
@@ -112,7 +122,8 @@ test.describe('Book Management', () => {
       const bookTitle = await firstBook.locator('h3').textContent();
 
       await firstBook.click();
-      await libraryPage.page.waitForSelector('.book-panel.visible');
+      await libraryPage.page.waitForSelector('.app-container.book-selected');
+      await libraryPage.page.waitForSelector('.book-detail-info h2');
 
       await expect(libraryPage.page.locator('.book-panel')).toBeVisible();
       await expect(libraryPage.page.locator('.book-detail-info h2')).toContainText(bookTitle || '');
@@ -121,7 +132,8 @@ test.describe('Book Management', () => {
     test('should show book metadata', async ({ libraryPage }) => {
       const firstBook = libraryPage.page.locator('.book-card').first();
       await firstBook.click();
-      await libraryPage.page.waitForSelector('.book-panel.visible');
+      await libraryPage.page.waitForSelector('.app-container.book-selected');
+      await libraryPage.page.waitForSelector('.book-detail-info h2');
 
       // Check for metadata elements
       await expect(libraryPage.page.locator('.book-detail-info')).toBeVisible();
@@ -131,11 +143,12 @@ test.describe('Book Management', () => {
     test('should close book panel with X button', async ({ libraryPage }) => {
       const firstBook = libraryPage.page.locator('.book-card').first();
       await firstBook.click();
-      await libraryPage.page.waitForSelector('.book-panel.visible');
+      await libraryPage.page.waitForSelector('.app-container.book-selected');
 
       await libraryPage.closeBookPanel();
 
-      await expect(libraryPage.page.locator('.book-panel.visible')).not.toBeVisible();
+      // Panel should no longer be in book-selected state
+      await expect(libraryPage.page.locator('.app-container.book-selected')).not.toBeVisible();
     });
 
     test('should highlight selected book in grid', async ({ libraryPage }) => {

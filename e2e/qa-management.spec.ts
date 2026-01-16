@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { AI_TEST_TIMEOUT, AI_RESPONSE_TIMEOUT } from './helpers/ai-mock';
 
 test.describe('Q&A Management', () => {
   test.beforeEach(async ({ libraryPage }) => {
@@ -15,13 +16,14 @@ test.describe('Q&A Management', () => {
 
   test.describe('Saving Q&A', () => {
     test('should auto-save Q&A after AI response', async ({ libraryPage }) => {
-      test.setTimeout(90000);
+      // Timeout adapts to mock (fast) or live (slow) mode
+      test.setTimeout(AI_TEST_TIMEOUT);
 
       await libraryPage.selectBook('QA Test Book');
       await libraryPage.sendChatMessage('What is this book about?');
 
       // Wait for response
-      await libraryPage.page.waitForSelector('.message.assistant', { timeout: 60000 });
+      await libraryPage.page.waitForSelector('.message.assistant', { timeout: AI_RESPONSE_TIMEOUT });
 
       // Q&A should be saved automatically
       // Refresh and check if it appears in saved Q&A

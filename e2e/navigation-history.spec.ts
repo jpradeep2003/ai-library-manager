@@ -2,9 +2,6 @@ import { test, expect } from './fixtures';
 
 test.describe('Navigation & History', () => {
   test.beforeEach(async ({ libraryPage }) => {
-    // Clear localStorage for clean history tests
-    await libraryPage.page.evaluate(() => localStorage.clear());
-
     // Set up test data
     const testBooks = [
       { title: 'History Book A', author: 'Author A', status: 'completed', tags: 'history' },
@@ -18,6 +15,9 @@ test.describe('Navigation & History', () => {
     }
 
     await libraryPage.goto();
+
+    // Clear localStorage for clean history tests (after page is loaded)
+    await libraryPage.page.evaluate(() => localStorage.clear());
   });
 
   test.describe('Book History Navigation', () => {
@@ -192,11 +192,11 @@ test.describe('Navigation & History', () => {
   test.describe('Panel Navigation', () => {
     test('should close book panel with X button', async ({ libraryPage }) => {
       await libraryPage.selectBook('History Book A');
-      await expect(libraryPage.page.locator('.book-panel.visible')).toBeVisible();
+      await expect(libraryPage.page.locator('.app-container.book-selected')).toBeVisible();
 
       await libraryPage.closeBookPanel();
 
-      await expect(libraryPage.page.locator('.book-panel.visible')).not.toBeVisible();
+      await expect(libraryPage.page.locator('.app-container.book-selected')).not.toBeVisible();
     });
 
     test('should expand library panel when book panel closes', async ({ libraryPage }) => {
